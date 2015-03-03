@@ -8,34 +8,17 @@ import lejos.nxt.Motor;
 import lejos.nxt.SensorPort;
 import lejos.nxt.SensorPortListener;
 import lejos.nxt.TouchSensor;
+import lejos.nxt.addon.CompassHTSensor;
+import lejos.nxt.addon.CompassMindSensor;
 import lejos.util.Delay;
 
 public class Main {
-	
-	static class MyListen implements SensorPortListener {
-		boolean isForward = true;
-		TouchSensor bump;
-		
-		public MyListen(TouchSensor bump) {
-			this.bump = bump;
-		}
-		
-		@Override
-		public void stateChanged(SensorPort aSource, int aOldValue, int aNewValue) {
-			if (bump.isPressed() && this.isForward) {
-				this.isForward = false;
-				Motor.A.forward();
-				Motor.B.forward();
-			}
-		}
-	}
-	
 	public static void main(String[] args) {
 		System.out.println("hello world");
 		
-		Motor.A.backward();
-		Motor.B.backward();
-		SensorPort.S1.addSensorPortListener(new MyListen(new TouchSensor(SensorPort.S1)));
+		Pilot p = new Pilot();
+		p.start();
+				
 		Button.waitForAnyPress();
 	}
 
