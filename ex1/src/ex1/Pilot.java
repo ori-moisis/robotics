@@ -103,13 +103,36 @@ public class Pilot implements SensorPortListener {
 		}
 	}
 	
+	double getDistance() {
+		double dist[] = new double[10]; 
+		for (int i = 0; i < 10; ++i) {
+			dist[i] = this.ultra.getDistance();
+			Delay.msDelay(100);
+		}
+		double best = 0;
+		int bestAgree = -1;
+		for (int i = 0; i < 10; ++i) {
+			int numAgree = 0;
+			for (int j = 0; j < 10; ++j) {
+				if (Math.abs(dist[i] - dist[j]) < 0.1) {
+					++numAgree;
+				}
+			}
+			if (numAgree > bestAgree) {
+				bestAgree = numAgree;
+				best = dist[i];
+			}
+		}
+		if (bestAgree < 5) {
+			System.out.println("bad distance");
+		}
+		return best;
+	}
+	
 	public void start() {
 		SensorPort.S1.addSensorPortListener(this);
 		
-		for (int i = 0; i < 10; ++i) {
-			this.initialDistance += (double)this.ultra.getDistance() / 10;
-			Delay.msDelay(100);
-		}
+		this.initialDistance = this.getDistance();
 		System.out.println("init=" + this.initialDistance);
 		
 		
@@ -117,50 +140,43 @@ public class Pilot implements SensorPortListener {
 		this.wheels.setSpeed();
 		this.wheels.forward();
 		
-		int badDist = 0;
+		boolean corrected = false;
 		
 		while (!done) {
-			Delay.msDelay(500);
+			Delay.msDelay(100);
 			if (!isForward) {
-				done = ((tachoForward - this.wheels.getTachoCount()) < 	100);
-				if (done) {
-					System.out.println("done");
-				}
-			}
-			
-			double dist = this.ultra.getDistance() - this.initialDistance;
-			if (Math.abs(dist) > 1) {
-				if (++badDist > 2) {
-					System.out.println("move=" + dist);
+				long distanceLeft = tachoForward - this.wheels.getTachoCount();
+				if (distanceLeft < 400 && ! corrected) {
+					corrected = true;
 					this.wheels.stop();
-					if ((dist > 0 && this.isForward) || (dist < 0 && !this.isForward)) {
-						if (this.leftAngle > -20) {
-							this.wheels.right.rotate(10);
-							this.leftAngle -= 10;
-						}
-					} else {
-						if (this.leftAngle < 20) {
-							this.wheels.left.rotate(10);
-							this.leftAngle += 10;
+					double currDist = this.getDistance();
+					System.out.println("curr=" + currDist);
+					double dist = this.initialDistance - currDist;
+					if (Math.abs(dist) > 1) {
+						if (dist > 0) {
+							this.wheels.right.rotate((int)(11 * Math.abs(dist)));
+						} else {
+							this.wheels.left.rotate((int)(11 * Math.abs(dist)));
 						}
 					}
+					Delay.msDelay(200);
 					this.wheels.resume();
 				}
-			} else {
-				System.out.println("back " + this.leftAngle);
-				if (this.leftAngle != 0) {
-					if (this.leftAngle > 0) {
-						this.wheels.left.rotate(this.leftAngle);
-					} else {
-						this.wheels.right.rotate(-this.leftAngle);
-					}
+				done = ((tachoForward - this.wheels.getTachoCount()) < 100);
+				if (done) {
+					System.out.println("done " + (tachoForward - this.wheels.getTachoCount()));
 				}
-				this.leftAngle = 0;
-				badDist = 0;
 			}
 		}
 		
 		this.wheels.stop();
-	}
-	
+		while (this.tachoForward - this.wheels.getTachoCount() > 0) {
+			this.wheels.left.rotate((int)(tachoForward - this.wheels.left.getTachoCount()), true);
+			this.wheels.right.rotate((int)(tachoForward - this.wheels.right.getTachoCount()), true);
+		}
+
+		System.out.println("done " + (tachoForward - this.wheels.getTachoCount()));
+		System.out.println("start dist=" + this.initialDistance);
+		System.out.println("end dist=" + this.ultra.getDistance());
+	}	
 }
