@@ -91,7 +91,6 @@ public class Pilot implements SensorPortListener {
 		this.initialDistance = 0;
 	}
 	
-	@Override
 	public void stateChanged(SensorPort aSource, int aOldValue, int aNewValue) {
 		if (aSource.getId() == 0 && this.isForward && this.touch.isPressed()) {
 			this.wheels.setAcceleration(10000);

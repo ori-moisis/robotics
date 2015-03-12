@@ -8,10 +8,12 @@ import lejos.util.Delay;
 
 public class Pilot {
 
+	static int TURN_ANGLE = 668;
+	
 	class Wheels {
 		public NXTRegulatedMotor left;
 		public NXTRegulatedMotor right;
-		float speed = 1000;
+		float speed = 800;
 		
 		public Wheels() {
 			this.right = Motor.A;
@@ -21,8 +23,8 @@ public class Pilot {
 		}
 		
 		public void turnLeft() {
-			this.left.rotate(450, true);
-			this.right.rotate(-450);
+			this.left.rotate(TURN_ANGLE, true);
+			this.right.rotate(-TURN_ANGLE);
 		}
 		
 		public void forward() {
@@ -33,12 +35,12 @@ public class Pilot {
 		
 		public void correctForward() {
 			if (this.left.getTachoCount() > this.right.getTachoCount()) {
-				this.left.setSpeed(this.speed + 0.5f);
-				this.right.setSpeed(this.speed - 0.5f);
+				this.left.setSpeed(this.speed + 1f);
+				this.right.setSpeed(this.speed - 1f);
 			}
 			if (this.left.getTachoCount() < this.right.getTachoCount()) {
-				this.left.setSpeed(this.speed - 0.5f);
-				this.right.setSpeed(this.speed + 0.5f);
+				this.left.setSpeed(this.speed - 1f);
+				this.right.setSpeed(this.speed + 1f);
 			}
 			if (this.left.getTachoCount() == this.right.getTachoCount()) {
 				this.left.setSpeed(this.speed);
@@ -114,12 +116,12 @@ public class Pilot {
 			Delay.msDelay(10);
 			this.wheels.correctForward();
 			double dist = this.getDistance();
-			if ((this.currEdge < 2 && dist < 30) ||
+			if ((this.currEdge < 2 && dist < 20) ||
 				(this.currEdge >= 2 && this.edges[this.currEdge-2] - this.wheels.getTachoCount() < 1000)) {
 				this.wheels.stop();
 				System.out.println("e=" + this.currEdge + " t=" + this.wheels.getTachoCount());
 				if (this.currEdge < 2) {
-					this.edges[this.currEdge] = this.wheels.getTachoCount();
+					this.edges[this.currEdge] = this.wheels.getTachoCount() - (TURN_ANGLE / 2.2);
 				} else {
 					this.wheels.left.rotate((int)(this.wheels.getTachoCount() - this.edges[this.currEdge-2]), true);
 					this.wheels.right.rotate((int)(this.wheels.getTachoCount() - this.edges[this.currEdge-2]));
