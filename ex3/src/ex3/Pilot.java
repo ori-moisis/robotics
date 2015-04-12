@@ -4,16 +4,19 @@ import lejos.nxt.Motor;
 import lejos.nxt.NXTRegulatedMotor;
 import lejos.nxt.SensorPort;
 import lejos.nxt.LightSensor;
+import lejos.util.Delay;
 import ex3.Pilot.Wheels;
 
 public class Pilot {
 
-	static int TURN_ANGLE = 50;
+	static int HIST_LEN = 3;
+	static int SENSOR_ROTATION = 10;
+	static int NUM_SAMPLES = 3;
 	
 	class Wheels {
 		public NXTRegulatedMotor left;
 		public NXTRegulatedMotor right;
-		float speed = 800;
+		float speed = 50;
 		
 		public Wheels() {
 			this.right = Motor.A;
@@ -22,30 +25,21 @@ public class Pilot {
 			this.right.setSpeed(this.speed);
 		}
 		
-		public void turnLeft() {
-			this.left.rotate(TURN_ANGLE, true);
-			this.right.rotate(-TURN_ANGLE);
-		}
-		
 		public void forward() {
 			this.setAcceleration(1000);
-			this.left.backward();
-			this.right.backward();
+			this.left.forward();
+			this.right.forward();
 		}
 		
-		public void correctForward() {
-			if (this.left.getTachoCount() > this.right.getTachoCount()) {
-				this.left.setSpeed(this.speed + 1f);
-				this.right.setSpeed(this.speed - 1f);
-			}
-			if (this.left.getTachoCount() < this.right.getTachoCount()) {
-				this.left.setSpeed(this.speed - 1f);
-				this.right.setSpeed(this.speed + 1f);
-			}
-			if (this.left.getTachoCount() == this.right.getTachoCount()) {
-				this.left.setSpeed(this.speed);
-				this.right.setSpeed(this.speed);
-			}
+		public void setSpeedDiff(int diff) {
+//			int intDiff = 0;
+//			if (diff > 1) {
+//				intDiff = (int)(10 * Math.min(diff, 3));
+//			} else if (diff < -1) {
+//				intDiff = (int)(10 * Math.max(diff, -3));
+//			}
+			this.left.setSpeed(this.speed - diff);
+			this.right.setSpeed(this.speed + diff);
 		}
 		
 		public void setAcceleration(int acc) {
@@ -58,10 +52,6 @@ public class Pilot {
 			this.right.stop();
 		}
 		
-		public long getTachoCount() {
-			return Math.abs((this.right.getTachoCount() + this.left.getTachoCount())/2);
-		}
-		
 		public void resetTachoCount() {
 			this.left.resetTachoCount();
 			this.right.resetTachoCount();
@@ -71,18 +61,62 @@ public class Pilot {
 	NXTRegulatedMotor sensorEng;
 	LightSensor light;
 	Wheels wheels;
+	int leftHist[];
+	int rightHist[];
+	int currIndex;
+	int lastLightVal;
+	int angleCorrection;
+	int turn;
+	int initialLight;
 	
 	public Pilot() {
 		this.wheels = new Wheels();
-		this.light = new LightSensor(SensorPort.S2, true);
+		this.light = new LightSensor(SensorPort.S1, true);
 		this.sensorEng = Motor.B;
+		this.leftHist = new int[HIST_LEN];
+		this.rightHist = new int[HIST_LEN];
+		this.currIndex = 0;
+		this.angleCorrection = 0;
+		this.turn = 0;
+		this.lastLightVal = 1000;
+		for (int i = 0; i < HIST_LEN; ++i) {
+			this.leftHist[i] = 0;
+			this.rightHist[i] = 0;
+		}
 	}
 	
-	public void moveLeft() {
-		this.sensorEng.rotate(10);
-	}
-	
-	public void moveRight() {
-		this.sensorEng.rotate(-10);
+	public void start() {
+		this.light.setFloodlight(true);
+		this.initialLight = this.light.readValue();
+		this.sensorEng.rotate(SENSOR_ROTATION * ((NUM_SAMPLES - 1) / 2));
+		
+		this.wheels.forward();
+		int sweepDirection = 1;
+		while (true) {
+			int val = this.light.readValue();
+			if (val > this.lastLightVal || val > this.initialLight + 2) {
+				int bestPos = 0;
+				int bestVal = 10000;
+				for (int i = 0; i < NUM_SAMPLES; ++i) {
+					val = this.light.readValue();
+					if (val < bestVal) {
+						bestPos = i;
+						bestVal = val; 
+					}
+					if (i < NUM_SAMPLES - 1) {
+						this.sensorEng.rotate(-sweepDirection * SENSOR_ROTATION);
+					}
+				}
+				int diff = sweepDirection * (bestPos - ((NUM_SAMPLES - 1) / 2));
+				sweepDirection = -sweepDirection;
+				
+				System.out.println("turn=" + diff);
+				this.wheels.setSpeedDiff(diff * 20);
+				
+				this.lastLightVal = bestVal;
+			} else {
+				this.lastLightVal = val;
+			}
+		}
 	}
 }
