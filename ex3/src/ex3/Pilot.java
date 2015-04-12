@@ -58,6 +58,7 @@ public class Pilot {
 		}
 	}
 	
+
 	NXTRegulatedMotor sensorEng;
 	LightSensor light;
 	Wheels wheels;
@@ -68,6 +69,7 @@ public class Pilot {
 	int angleCorrection;
 	int turn;
 	int initialLight;
+	int minVal;
 	
 	public Pilot() {
 		this.wheels = new Wheels();
@@ -88,6 +90,7 @@ public class Pilot {
 	public void start() {
 		this.light.setFloodlight(true);
 		this.initialLight = this.light.readValue();
+		this.minVal = this.initialLight; 
 		this.sensorEng.rotate(SENSOR_ROTATION * ((NUM_SAMPLES - 1) / 2));
 		
 		this.wheels.forward();
@@ -95,8 +98,13 @@ public class Pilot {
 		while (true) {
 			int val = this.light.readValue();
 			if (val > this.lastLightVal || val > this.initialLight + 2) {
+				//int sweepDirection = -this.turn;
 				int bestPos = 0;
 				int bestVal = 10000;
+//				if (this.turn == 0) {
+//					this.sensorEng.rotate(SENSOR_ROTATION);
+//					sweepDirection = 1;
+//				}
 				for (int i = 0; i < NUM_SAMPLES; ++i) {
 					val = this.light.readValue();
 					if (val < bestVal) {
@@ -107,16 +115,22 @@ public class Pilot {
 						this.sensorEng.rotate(-sweepDirection * SENSOR_ROTATION);
 					}
 				}
-				int diff = sweepDirection * (bestPos - ((NUM_SAMPLES - 1) / 2));
+				this.turn = sweepDirection * (bestPos - ((NUM_SAMPLES - 1) / 2));
 				sweepDirection = -sweepDirection;
 				
-				System.out.println("turn=" + diff);
-				this.wheels.setSpeedDiff(diff * 20);
+				System.out.println("turn=" + this.turn + " fm=" + (bestVal - this.minVal));
+				this.wheels.setSpeedDiff(this.turn * 2 * (bestVal - this.minVal));
+				
+				// Move back to best pos
+//				for (int i = 0; i < (NUM_SAMPLES - bestPos - 1); ++i) {
+//					this.sensorEng.rotate(sweepDirection * SENSOR_ROTATION);
+//				}
 				
 				this.lastLightVal = bestVal;
 			} else {
 				this.lastLightVal = val;
 			}
+			this.minVal = Math.min(this.minVal, this.lastLightVal);
 		}
 	}
 }
