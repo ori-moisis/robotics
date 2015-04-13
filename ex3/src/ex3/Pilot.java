@@ -118,6 +118,8 @@ public class Pilot {
 				this.turn = sweepDirection * (bestPos - ((NUM_SAMPLES - 1) / 2));
 				sweepDirection = -sweepDirection;
 				
+				this.minVal = Math.min(this.minVal, bestVal);
+				
 				System.out.println("turn=" + this.turn + " fm=" + (bestVal - this.minVal));
 				this.wheels.setSpeedDiff(this.turn * 2 * (bestVal - this.minVal));
 				
