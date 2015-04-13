@@ -97,7 +97,7 @@ public class Pilot {
 		int sweepDirection = 1;
 		while (true) {
 			int val = this.light.readValue();
-			if (val > this.lastLightVal || val > this.initialLight + 2) {
+			if (val > this.lastLightVal) {
 				//int sweepDirection = -this.turn;
 				int bestPos = 0;
 				int bestVal = 10000;
