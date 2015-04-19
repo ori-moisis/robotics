@@ -1,10 +1,16 @@
 
 
+import java.io.DataInputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+
 import lejos.nxt.LightSensor;
 import lejos.nxt.Motor;
 import lejos.nxt.NXTRegulatedMotor;
 import lejos.nxt.SensorPort;
 import lejos.nxt.SensorPortListener;
+import lejos.nxt.Sound;
 import lejos.nxt.UltrasonicSensor;
 import lejos.nxt.addon.CompassHTSensor;
 import lejos.util.Delay;
@@ -18,6 +24,7 @@ public class Pilot implements SensorPortListener {
 	static double LONG_AXIS_BIAS = 11;
 	static double SHORT_AXIS_HEADING = 66;
 	static double SHORT_AXIS_BIAS = 30;
+	static double OTHER_SIDE_BIAS = 2;
 	static double LIGHT_THRESHOLD = 42;
 	
 	class Wheels {
@@ -39,7 +46,6 @@ public class Pilot implements SensorPortListener {
 		}
 		
 		public void move(double distance) {
-			System.out.println("moving=" + distance);
 			if (Math.abs(distance) > 15) {
 				distance *= 6.5;
 			} else if (Math.abs(distance) > 5) {
@@ -47,6 +53,13 @@ public class Pilot implements SensorPortListener {
 			} else {
 				distance *= 1.5;
 			}
+			
+			if (distance > 600) {
+				distance = 600;
+			} else if (distance < -600) {
+				distance = -600;
+			}
+			
 			this.left.rotate((int)distance, true);
 			this.right.rotate((int)distance);
 		}
@@ -57,6 +70,12 @@ public class Pilot implements SensorPortListener {
 			} else {
 				degrees *= 1.2;
 			}
+			
+			// Make sure the turn is at least 1 so we don't get stuck
+			if (Math.abs(degrees) < 1) {
+				degrees = degrees / Math.abs(degrees);
+			}
+			
 			this.left.rotate((int)-degrees, true);
 			this.right.rotate((int)degrees);
 		}
@@ -125,6 +144,7 @@ public class Pilot implements SensorPortListener {
 	boolean stopped;
 	boolean skipLight;
 	int lastDirection;
+	long startTime;
 	
 	
 	public Pilot() {
@@ -146,13 +166,17 @@ public class Pilot implements SensorPortListener {
 		}
 		
 		double[] best = {0,0};
-		int[] bestAgree = {-1, -1};
+		double[] bestAgree = {-1, -1};
 		for (int j = 0; j < 2; ++j) {
 			for (int i = 0; i < 10; ++i) {
-				int numAgree = 0;
+				double numAgree = 0;
 				for (int k = 0; k < 10; ++k) {
 					if (Math.abs(dist[j][i] - dist[j][k]) < 0.1) {
-						++numAgree;
+						if (255 - dist[j][i] < 1) {
+							numAgree += 0.1;
+						} else {
+							numAgree += 1;
+						}
 					}
 				}
 				if (numAgree > bestAgree[j]) {
@@ -224,13 +248,23 @@ public class Pilot implements SensorPortListener {
 		if (this.stopped) {
 			return;
 		}
+		
 		double heading = this.getHeading();
+		boolean didTrick = false;
+		
 		while (Math.abs(heading - targetHeading) > 1) {
 			if (this.stopped) {
 				return;
 			}
 			this.wheels.turn((heading - targetHeading) % 360);
 			heading = this.getHeading();
+			if (targetHeading == SHORT_AXIS_HEADING && ! didTrick) {
+				double[] dists = this.getDistances();
+				didTrick = true;
+				if (dists[0] - dists[1] > 0) {
+					targetHeading += OTHER_SIDE_BIAS;
+				}
+			}
 		}
 	}
 	
@@ -244,6 +278,7 @@ public class Pilot implements SensorPortListener {
 			if (this.stopped) {
 				return;
 			}
+			System.out.println("[0]=" + dists[0] + " [1]=" + dists[1]);
 			if (dists[0] > dists[1]) {
 				this.lastDirection = 1;
 				this.wheels.move(Math.min(dists[0] - dists[1], 100));
@@ -255,12 +290,15 @@ public class Pilot implements SensorPortListener {
 			dists[0] -= bias;
 		}
 	}
-	
+
 	public void start() {		
 		// Listen for changes in light
 		SensorPort.S2.addSensorPortListener(this);
 		
 		Delay.msDelay(100);
+		
+		startTime = System.currentTimeMillis();
+		
 		this.skipLight = false;
 		
 		// Align to long axis
@@ -277,27 +315,43 @@ public class Pilot implements SensorPortListener {
 		this.lastDirection = (dists[0] > dists[1]) ? 1 : -1;
 		if (! this.stopped) {
 			// Try moving a bit too much in the hope we are perfectly aligned
-			this.wheels.move(dists[0] - SHORT_AXIS_BIAS - dists[1] + (10 * this.lastDirection));
+			this.wheels.move(dists[0] - SHORT_AXIS_BIAS - dists[1] + (20 * this.lastDirection));
 		}
 		this.moveToMiddle(SHORT_AXIS_BIAS, 5);
 		
 		// Search mode
 		this.wheels.setSpeed(300);
-		this.wheels.setAcceleration(10000);
-		if (! this.stopped) {
-			this.wheels.turn(CORNER_TURN_ANGLE * 4);
-		}
 		
 		while (! this.stopped) {
-			this.wheels.turnLeft();
 			if (! this.stopped) {
-				this.wheels.move(20);
+				this.wheels.left.forward();
+				this.wheels.right.backward();
 			}
-			if (! this.stopped) {
-				this.wheels.move(-40);
+			int i = 0;
+			while (! this.stopped && i <= 400) {
+				Delay.msDelay(100);
+				this.wheels.right.setSpeed(300 - i);
+				i += 5;
 			}
-			if (! this.stopped) {
-				this.wheels.move(20);
+			
+			
+			this.wheels.setSpeed(300);
+			
+			i = 0;
+			while (! this.stopped && i < 12) {
+				this.wheels.setAcceleration(this.wheels.acc);
+				this.wheels.turnLeft();
+				this.wheels.setAcceleration(10000);
+				if (! this.stopped) {
+					this.wheels.move(20);
+				}
+				if (! this.stopped) {
+					this.wheels.move(-40);
+				}
+				if (! this.stopped) {
+					this.wheels.move(20);
+				}
+				++i;
 			}
 		}
 	}
@@ -308,11 +362,14 @@ public class Pilot implements SensorPortListener {
 		if (! this.stopped && !this.skipLight) {
 			int lightVal = this.light.readValue();
 			if (this.light.readValue() <= LIGHT_THRESHOLD) {
-				System.out.println("stopping " + lightVal);
+				long totalTime = System.currentTimeMillis() - this.startTime;
+				double timeInSec = totalTime / 1000.0;
 				this.stopped = true;
 				this.wheels.setAcceleration(10000);
 				this.wheels.stop();
 				this.wheels.setAcceleration(this.wheels.acc);
+				System.out.println("time=" + timeInSec);
+				Sound.systemSound(true, 1);
 			}
 		}
 	}
