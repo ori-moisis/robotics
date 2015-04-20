@@ -1,10 +1,3 @@
-
-
-import java.io.DataInputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-
 import lejos.nxt.LightSensor;
 import lejos.nxt.Motor;
 import lejos.nxt.NXTRegulatedMotor;
@@ -16,9 +9,7 @@ import lejos.nxt.addon.CompassHTSensor;
 import lejos.util.Delay;
 
 public class Pilot implements SensorPortListener {
-
 	static int TURN_ANGLE = 50;
-	static double FIRST_DIST_THRESH = 50;
 	static int CORNER_TURN_ANGLE = 206;
 	static double LONG_AXIS_HEADING = 180;
 	static double LONG_AXIS_BIAS = 11;
@@ -90,27 +81,6 @@ public class Pilot implements SensorPortListener {
 			this.right.rotate(TURN_ANGLE);
 		}
 		
-		public void forward() {
-			this.setAcceleration(1000);
-			this.left.forward();
-			this.right.forward();
-		}
-		
-		public void correctForward() {
-			if (this.left.getTachoCount() > this.right.getTachoCount()) {
-				this.left.setSpeed(this.speed + 1f);
-				this.right.setSpeed(this.speed - 1f);
-			}
-			if (this.left.getTachoCount() < this.right.getTachoCount()) {
-				this.left.setSpeed(this.speed - 1f);
-				this.right.setSpeed(this.speed + 1f);
-			}
-			if (this.left.getTachoCount() == this.right.getTachoCount()) {
-				this.left.setSpeed(this.speed);
-				this.right.setSpeed(this.speed);
-			}
-		}
-		
 		public void setAcceleration(int acc) {
 			this.left.setAcceleration(acc);
 			this.right.setAcceleration(acc);
@@ -124,15 +94,6 @@ public class Pilot implements SensorPortListener {
 		public void stop() {
 			this.left.stop(true);
 			this.right.stop();
-		}
-		
-		public long getTachoCount() {
-			return Math.abs((this.right.getTachoCount() + this.left.getTachoCount())/2);
-		}
-		
-		public void resetTachoCount() {
-			this.left.resetTachoCount();
-			this.right.resetTachoCount();
 		}
 	}
 	
@@ -216,34 +177,6 @@ public class Pilot implements SensorPortListener {
 		return best;
 	}
 	
-	double[] calcLowNum(double[] a, int length) {
-	    double results[] = new double[3];
-	    results[0] = 1000;
-	    
-	    for (int i=0; i<length; i++){
-	          if (a[i]<=results[0]) {
-	        	  // the min value
-	              results[0] = a[i];
-	              
-	      }
-	    }
-	    boolean lookingForFirst = true;
-	    for (int x=0; x<length; x++) {
-	    	if (a[x] == results[0]) {
-	    		if (lookingForFirst) {
-	    			results[1] = (double)x;
-	    		}
-	    		else {
-	    			results[2] = (double)x;
-	    		}
-	    		lookingForFirst = false;
-	    	}
-	    }
-
-
-	    return results;
-	}
-	
 	void alignToHeading(double targetHeading) {
 		if (this.stopped) {
 			return;
@@ -278,7 +211,6 @@ public class Pilot implements SensorPortListener {
 			if (this.stopped) {
 				return;
 			}
-			System.out.println("[0]=" + dists[0] + " [1]=" + dists[1]);
 			if (dists[0] > dists[1]) {
 				this.lastDirection = 1;
 				this.wheels.move(Math.min(dists[0] - dists[1], 100));
