@@ -36,7 +36,6 @@ public class DistanceMonitor implements Runnable {
 			}
 			
 			int dist = this.sesnsor.getDistance();
-			System.out.println("d=" + dist);
 			this.controller.handleDistance(dist);
 			if (dist < this.threshold) {
 				this.paused = true;

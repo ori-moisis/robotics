@@ -35,7 +35,7 @@ public class Ex6Controller {
 	boolean holdingBall;
 	
 	public Ex6Controller() {
-		pilot = new DifferentialPilot(DifferentialPilot.WHEEL_SIZE_RCX, 12.8, Motor.C, Motor.A);
+		pilot = new DifferentialPilot(DifferentialPilot.WHEEL_SIZE_RCX, 13.9, Motor.C, Motor.A);
 		pilot.setTravelSpeed(NORMAL_SPEED);
 		pilot.setRotateSpeed(ROTATION_SPEED);
 		pilot.setAcceleration(NORMAL_ACC);
@@ -60,8 +60,10 @@ public class Ex6Controller {
 		distMonitorThread.start();
 		
 		for (int i = 0; i < 4; ++i) {
-			this.goToBall();
-			this.kick();
+			do {
+				this.goToBall();
+				this.kick();
+			} while (! this.isGoal());
 			this.resetPosition();
 		}
 		
@@ -81,29 +83,58 @@ public class Ex6Controller {
 		this.pilot.setTravelSpeed(Math.min(NORMAL_SPEED, dist));
 	}
 	
+	public int getDistance(UltrasonicSensor sensor) {
+		int dist = 255;
+		while (dist == 255) {
+			dist = sensor.getDistance();
+		}
+		return dist;
+	}
+	
+	public float getBallAngle() {
+		final int ANGLES[] = {-60, -30, 0, 30, 60};
+		
+		float angle = 0;
+		int[] vals = this.seeker.getSensorValues();
+		float sumVals = 0;
+		for (int i = 0; i < vals.length; ++i) {
+			sumVals += vals[i];
+		}
+		for (int i = 0; i < vals.length; ++i) {
+			angle += ANGLES[i] * vals[i] / sumVals;
+		}
+		System.out.println("angle=" + angle);
+		return angle;
+	}
+	
 	public void goToBall() {
 		boolean haveBall = false;
 		while (! haveBall) {
 			this.raiseHolder();
 			this.distMonitor.resume();
-			System.out.println("moving forward");
 			this.pilot.forward();
 			while (! this.holdingBall) {
-				float angle = this.seeker.getAngle(false);
+				float angle = this.getBallAngle();
 				if (angle != 0) {
+					this.pilot.setAcceleration(1000);
 					this.pilot.stop();
-					this.pilot.rotate(-angle);
+					this.pilot.setAcceleration(NORMAL_ACC);
+					do {
+						this.pilot.rotate(-angle);
+						angle = this.getBallAngle();
+					} while (angle != 0);
 					this.pilot.forward();
 				}
 			}
 			this.pilot.stop();
 			
-			int dist = 255;
-			while (dist == 255) {
-				dist = this.ultraFront.getDistance();
-			}
-			haveBall = dist < 10;
+			Delay.msDelay(500);
+			haveBall = this.getDistance(this.ultraFront) < 10;
 		}
+	}
+	
+	public boolean isGoal() {
+		return true;
 	}
 	
 	public void kick() {
@@ -123,16 +154,20 @@ public class Ex6Controller {
 		this.pilot.setAcceleration(1000);
 		this.pilot.setTravelSpeed(1000);
 		this.pilot.travel(12, true);
-		Delay.msDelay(50);
+		Delay.msDelay(100);
 		this.raiseHolder();
 		
+		while (this.pilot.isMoving()) {
+			Delay.msDelay(100);
+		}
+		Delay.msDelay(100);
+		
+		this.pilot.stop();
 		this.pilot.setAcceleration(NORMAL_ACC);
 		this.pilot.setTravelSpeed(NORMAL_SPEED);
 	}
 	
-	public void resetPosition() {
-		this.nav.goTo(0, 0, 0);
-		this.nav.waitForStop();
+	public void resetHeading() {
 		float deg = 3;
 		while (Math.abs(deg) > 2) {
 			do {
@@ -144,31 +179,30 @@ public class Ex6Controller {
 			System.out.println("fix heading " + deg);
 			this.pilot.rotate(-deg);
 		}
+	}
+	
+	public void resetPosition() {
+		// Return to initial position
+		this.nav.goTo(0, 0, 0);
+		this.nav.waitForStop();
 		
-		int dist = 255;
-		while (dist == 255) {
-			dist = this.ultraRight.getDistance();
-		}
-		int toTravel = 53 - dist; 
-		if (Math.abs(toTravel) > 2) {
-			this.pilot.rotate(90);
-			this.pilot.travel(toTravel);
-			this.pilot.rotate(-90);
-		}
-		
-		deg = 3;
-		while (Math.abs(deg) > 2) {
-			do {
-				deg = compass.getDegreesCartesian();
-			} while (deg == -1);
-			if (deg > 180) {
-				deg = deg - 360;
+		// Fix position again
+		this.resetHeading();
+		int y = this.getDistance(this.ultraRight) - 53;
+		if (true) {
+			if (y != 0) {
+				this.pilot.rotate(-90);
+				this.pilot.travel(-y);
+				this.pilot.rotate(90);
+				this.pose.setPose(new Pose());
 			}
-			System.out.println("fix heading " + deg);
-			this.pilot.rotate(-deg);
+		} else {
+			this.pilot.rotate(-90);
+			int x = this.getDistance(this.ultraRight) - 30;
+			this.resetHeading();
+			
+			this.pose.setPose(new Pose(x, y, 0));
 		}
-		
-		this.pose.setPose(new Pose());
 	}
 	
 	
