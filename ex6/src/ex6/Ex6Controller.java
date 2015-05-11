@@ -192,7 +192,7 @@ public class Ex6Controller {
 		if (true) {
 			if (y != 0) {
 				this.pilot.rotate(-90);
-				this.pilot.travel(-y);
+				this.pilot.travel(y);
 				this.pilot.rotate(90);
 				this.pose.setPose(new Pose());
 			}
