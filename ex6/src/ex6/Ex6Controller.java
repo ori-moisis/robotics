@@ -1,18 +1,26 @@
 package ex6;
 
+import java.io.DataInputStream;
+
+import javax.bluetooth.RemoteDevice;
+
 import lejos.geom.Point;
 import lejos.nxt.Motor;
 import lejos.nxt.NXTRegulatedMotor;
 import lejos.nxt.SensorPort;
+import lejos.nxt.Sound;
 import lejos.nxt.UltrasonicSensor;
 import lejos.nxt.addon.CompassHTSensor;
 import lejos.nxt.addon.IRSeekerV2;
+import lejos.nxt.comm.BTConnection;
+import lejos.nxt.comm.Bluetooth;
 import lejos.robotics.localization.OdometryPoseProvider;
 import lejos.robotics.localization.PoseProvider;
 import lejos.robotics.navigation.DifferentialPilot;
 import lejos.robotics.navigation.Pose;
 import lejos.robotics.navigation.Navigator;
 import lejos.util.Delay;
+import lejos.util.Stopwatch;
 
 public class Ex6Controller {
 	
@@ -29,10 +37,15 @@ public class Ex6Controller {
 	UltrasonicSensor ultraRight;
 	NXTRegulatedMotor holderMotor;
 	CompassHTSensor compass;
+	Stopwatch stopwatch;
 	
 	DistanceMonitor distMonitor;
 	Thread distMonitorThread;
 	boolean holdingBall;
+	
+	GoalMonitor goalMonitor;
+	Thread goalMonitorThread;
+	boolean isInGoal;
 	
 	public Ex6Controller() {
 		pilot = new DifferentialPilot(DifferentialPilot.WHEEL_SIZE_RCX, 13.9, Motor.C, Motor.A);
@@ -53,29 +66,54 @@ public class Ex6Controller {
 		distMonitor = new DistanceMonitor(this, this.ultraFront, 7);
 		distMonitorThread = new Thread(this.distMonitor);
 		holdingBall = false;
+		
+		stopwatch = new Stopwatch();
+		
+		isInGoal = false;
 	}
 	
 	public void start() {
+		BTConnection connection = Bluetooth.waitForConnection();
+		if (connection == null) {
+			System.out.println("Failed to connect");
+			return;
+		}
+		System.out.println("Connected to LabNXT");
+		goalMonitor = new GoalMonitor(this, connection);
+		goalMonitorThread = new Thread(this.goalMonitor);
+		goalMonitorThread.start();
+		
+		
 		compass.resetCartesianZero();
 		distMonitorThread.start();
+		stopwatch.reset();
 		
-		for (int i = 0; i < 4; ++i) {
+		for (int i = 0; i < 3; ++i) {
 			do {
 				this.goToBall();
-				this.kick();
+				if (! this.isInGoal) {
+					this.kick();
+					Delay.msDelay(3000);
+				}
 			} while (! this.isGoal());
 			this.resetPosition();
 		}
 		
 		this.distMonitor.stop();
+		this.goalMonitor.stop();
+		
 		this.resetPosition();
+		
+		int millis = stopwatch.elapsed();
+		float secs = (float)millis / 1000; 
+		System.out.println("done in " + secs + "seconds");
+		Sound.systemSound(false, 3);
 		
 		try {
 			distMonitorThread.join();
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
-		System.out.println("done");
 	}
 	
 	public void handleDistance(int dist) {
@@ -103,22 +141,21 @@ public class Ex6Controller {
 		for (int i = 0; i < vals.length; ++i) {
 			angle += ANGLES[i] * vals[i] / sumVals;
 		}
-		System.out.println("angle=" + angle);
+		angle *= 1.5;
+		//System.out.println("angle=" + angle);
 		return angle;
 	}
 	
 	public void goToBall() {
 		boolean haveBall = false;
-		while (! haveBall) {
+		while (! haveBall && ! this.isInGoal) {
 			this.raiseHolder();
 			this.distMonitor.resume();
 			this.pilot.forward();
-			while (! this.holdingBall) {
+			while (! this.holdingBall && ! this.isInGoal) {
 				float angle = this.getBallAngle();
 				if (angle != 0) {
-					this.pilot.setAcceleration(1000);
 					this.pilot.stop();
-					this.pilot.setAcceleration(NORMAL_ACC);
 					do {
 						this.pilot.rotate(-angle);
 						angle = this.getBallAngle();
@@ -134,7 +171,17 @@ public class Ex6Controller {
 	}
 	
 	public boolean isGoal() {
-		return true;
+		if (this.isInGoal) {
+			this.isInGoal = false;
+			return true;
+		} else {
+			return false;
+		}
+	}
+	
+	public void goalScored() {
+		System.out.println("Goal scored!");
+		this.isInGoal = true;
 	}
 	
 	public void kick() {
@@ -143,10 +190,10 @@ public class Ex6Controller {
 		Point toGoal = GOAL_POSITION.subtract(myLoc);
 		double headingToGoal = 180 * Math.atan2(toGoal.getY(), toGoal.getX()) / Math.PI;
 		
-		System.out.println("p=" + (int)myLoc.getX() + "," + (int)myLoc.getY());
-		System.out.println("tg=" + (int)toGoal.getX() + "," + (int)toGoal.getY());
-		System.out.println("h=" + this.pose.getPose().getHeading());
-		System.out.println("htg=" + headingToGoal);
+//		System.out.println("p=" + (int)myLoc.getX() + "," + (int)myLoc.getY());
+//		System.out.println("tg=" + (int)toGoal.getX() + "," + (int)toGoal.getY());
+//		System.out.println("h=" + this.pose.getPose().getHeading());
+//		System.out.println("htg=" + headingToGoal);
 		
 		this.pilot.rotate(headingToGoal - this.pose.getPose().getHeading());
 		
@@ -176,7 +223,6 @@ public class Ex6Controller {
 			if (deg > 180) {
 				deg = deg - 360;
 			}
-			System.out.println("fix heading " + deg);
 			this.pilot.rotate(-deg);
 		}
 	}
@@ -189,19 +235,11 @@ public class Ex6Controller {
 		// Fix position again
 		this.resetHeading();
 		int y = this.getDistance(this.ultraRight) - 53;
-		if (true) {
-			if (y != 0) {
-				this.pilot.rotate(-90);
-				this.pilot.travel(y);
-				this.pilot.rotate(90);
-				this.pose.setPose(new Pose());
-			}
-		} else {
+		if (y != 0) {
 			this.pilot.rotate(-90);
-			int x = this.getDistance(this.ultraRight) - 30;
-			this.resetHeading();
-			
-			this.pose.setPose(new Pose(x, y, 0));
+			this.pilot.travel(y);
+			this.pilot.rotate(90);
+			this.pose.setPose(new Pose());
 		}
 	}
 	
@@ -213,14 +251,18 @@ public class Ex6Controller {
 	public synchronized void lowerHolder() {
 		if (! this.holdingBall) {
 			this.holdingBall = true;
-			holderMotor.rotate(-70);
+			holderMotor.rotate(-90, true);
+			Delay.msDelay(200);
+			holderMotor.stop();
 		}
 	}
 	
 	public synchronized void raiseHolder() {
 		if (this.holdingBall) {
 			this.holdingBall = false;
-			holderMotor.rotate(70);
+			holderMotor.rotate(70, true);
+			Delay.msDelay(200);
+			holderMotor.stop();
 		}
 	}
 	
