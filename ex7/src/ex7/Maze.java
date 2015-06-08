@@ -28,6 +28,10 @@ public class Maze {
 		this.initialDirection = initialDirection;
 	}
 	
+	public MazeBlock.Direction getDirection() {
+		return this.currentDirection;
+	}
+	
 	public void setWall() {
 		this.getBlock(x, y, false).addWall(this.currentDirection.right());
 	}

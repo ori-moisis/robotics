@@ -5,19 +5,25 @@ import java.util.List;
 
 public class MazeBlock {
 	public enum Direction {
-		NORTH (0), 
-		EAST (1), 
-		SOUTH (2), 
-		WEST (3);
+		NORTH (0, 0), 
+		EAST (1, 85), 
+		SOUTH (2, 167), 
+		WEST (3, 300);
 		
 		private int offset;
+		private int heading;
 		
-		Direction(int offset) {
+		Direction(int offset, int heading) {
 			this.offset = offset;
+			this.heading = heading;
 		}
 		
 		public int getOffset() {
 			return this.offset;
+		}
+		
+		public int getHeading() {
+			return this.heading;
 		}
 		
 		public Direction right() {
