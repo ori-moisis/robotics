@@ -11,7 +11,7 @@ public class Main {
 //		Maze m = new Maze(6, 4, MazeBlock.Direction.SOUTH);
 //		m.setWall();
 //		m.forward();
-//		m.setWall();
+//		
 //		m.forward();
 //		m.setWall();
 //		m.forward();

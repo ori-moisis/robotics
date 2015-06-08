@@ -29,11 +29,11 @@ public class Maze {
 	}
 	
 	public void setWall() {
-		this.getBlock(x, y).addWall(this.currentDirection.right());
+		this.getBlock(x, y, false).addWall(this.currentDirection.right());
 	}
 	
 	public void setBlack() {
-		this.getBlock(x, y).setBlack(true);
+		this.getBlock(x, y, false).setBlack(true);
 	}
 	
 	public void turn() {
@@ -74,7 +74,17 @@ public class Maze {
 	}
 	
 	MazeBlock getBlock(int x, int y) {
-		return this.maze[x < 0 ? x + this.maze.length : x][y < 0 ? y + this.maze[0].length : y];
+		return this.getBlock(x, y, true);
+	}
+	
+	MazeBlock getBlock(int x, int y, boolean applyOffset) {
+		int realX = x;
+		int realY = y;
+		if (applyOffset) {
+			realX += this.xOffset;
+			realY += this.yOffset;
+		}
+		return this.maze[realX < 0 ? realX + this.maze.length : realX][realY < 0 ? realY + this.maze[0].length : realY]; 
 	}
 	
 	public void drawMaze() {
