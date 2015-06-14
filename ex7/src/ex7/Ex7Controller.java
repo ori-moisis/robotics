@@ -33,6 +33,7 @@ public class Ex7Controller implements Maze.MazeFinishListener {
 	
 	int forwardMarked;
 	int lastForwardMarked;
+	int movementOffset;
 	boolean frontWall;
 	boolean rightNoWall;
 	Object alert;
@@ -61,6 +62,7 @@ public class Ex7Controller implements Maze.MazeFinishListener {
 		
 		forwardMarked = 0;
 		lastForwardMarked = -1;
+		movementOffset = 0;
 		frontWall = false;
 		rightNoWall = false;
 		alert = new Object();
@@ -99,13 +101,17 @@ public class Ex7Controller implements Maze.MazeFinishListener {
 		}
 	}
 
-	public void checkForward() {		
-		int forwardDone = ((int)this.pilot.getMovementIncrement()) / BLOCK_SIZE;
-		if (forwardDone > this.forwardMarked) {
+	public void checkForward(boolean isTurn) {
+		int forwardDone = (int)this.pilot.getMovementIncrement() - this.movementOffset;
+		int blocksDone = forwardDone / BLOCK_SIZE;
+		int offsetInBlock = forwardDone - this.forwardMarked * BLOCK_SIZE; 
+		
+		if ((blocksDone > this.forwardMarked) ||
+			(isTurn && offsetInBlock >= (BLOCK_SIZE / 3))) {
 			this.forwardMarked += 1;
 			this.maze.forward();
 		}
-		// will go in every first time - will not go in without a call to forward
+		
 		if (this.forwardMarked > this.lastForwardMarked) {
 			if (this.isBlack()) {
 				this.maze.setBlack();
@@ -146,29 +152,25 @@ public class Ex7Controller implements Maze.MazeFinishListener {
 					e.printStackTrace();
 				}
 			}
-			this.checkForward();
+			this.checkForward(false);
 			if (this.rightNoWall) {
 				// Turn right
 				this.frontDistMonitor.pause();
 				this.rightDistMonitor.pause();
 				// The case in which we have one more forward to perform
-				if (((int)this.pilot.getMovementIncrement() - this.forwardMarked*BLOCK_SIZE) >= 10) {
-					this.maze.forward();
-					if (this.isBlack()) {
-						this.maze.setBlack();
-					}
-					if (this.hasWall(ultraRight)) {
-						this.maze.setWall();
-					}	
-				}
-				this.pilot.travel(16);
-				int rotate = -90 - this.rightDistMonitor.getTrend();
-				this.pilot.rotate(rotate);
+				this.checkForward(true);
+				
+				this.pilot.arc(-15, -90 - this.rightDistMonitor.getTrend());
+//				this.pilot.travel(16);
+//				int rotate = -90 - this.rightDistMonitor.getTrend();
+//				this.pilot.rotate(rotate);
 				this.pilot.forward();
 				
 				this.maze.turn();
-				this.forwardMarked = 0;
-				this.lastForwardMarked = -1;
+				this.maze.forward();
+				this.forwardMarked = 1;
+				this.lastForwardMarked = 0;
+				this.movementOffset = BLOCK_SIZE / 2;
 				
 				this.frontWall = false;
 				this.rightNoWall = false;
@@ -181,15 +183,7 @@ public class Ex7Controller implements Maze.MazeFinishListener {
 				this.rightDistMonitor.pause();
 				this.frontDistMonitor.pause();				
 				// The case in which we have one more forward to perform
-				if (((int)this.pilot.getMovementIncrement() - this.forwardMarked*BLOCK_SIZE) >= 10) {
-					this.maze.forward();
-					if (this.isBlack()) {
-						this.maze.setBlack();
-					}
-					if (this.hasWall(ultraRight)) {
-						this.maze.setWall();
-					}	
-				}
+				this.checkForward(true);
 				
 				this.pilot.stop();
 				int rotate = 90 - this.rightDistMonitor.getTrend();
@@ -201,6 +195,7 @@ public class Ex7Controller implements Maze.MazeFinishListener {
 				this.maze.turn();
 				this.forwardMarked = 0;
 				this.lastForwardMarked = -1;
+				this.movementOffset = 0;
 				
 				this.frontWall = false;
 				this.rightNoWall = false;
