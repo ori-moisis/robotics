@@ -8,7 +8,7 @@ public class Main {
 		System.out.println("Press any button to start");
 		Button.waitForAnyPress();
 		
-//		Maze m = new Maze(6, 4, MazeBlock.Direction.SOUTH);
+//		Maze m = new Maze(6, 4, MazeBlock.Direction.SOUTH, null);
 //		m.setWall();
 //		m.forward();
 //		
@@ -52,7 +52,14 @@ public class Main {
 //		m.forward();
 //		m.forward();
 //		m.setWall();
-//		m.drawMaze();
+//		//m.drawMaze();
+//		
+//		Maze.Movement[] path = m.getPathToBlack();
+//		for (Maze.Movement move : path) {
+//			if (move != null) {
+//				System.out.println(move.name());
+//			}
+//		}
 		
 		Ex7Controller controller = new Ex7Controller();
 		controller.start();

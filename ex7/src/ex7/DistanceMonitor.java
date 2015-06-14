@@ -13,23 +13,26 @@ public class DistanceMonitor implements Runnable {
 	UltrasonicSensor sesnsor;
 	RegulatedMotor left;
 	RegulatedMotor right;
-	
 	int targetDistance;
+	int speed;
+	
 	int pastDistance[];
 	int pastDistanceOffset;
 	int numDists;
 	int trend;
 	
+	
 	boolean paused;
 	Object pausedEvent;
 	boolean stopped;
 	
-	public DistanceMonitor(Ex7Controller controller, UltrasonicSensor sesnsor, int targetDistance, RegulatedMotor left, RegulatedMotor right) {
+	public DistanceMonitor(Ex7Controller controller, UltrasonicSensor sesnsor, int targetDistance, RegulatedMotor left, RegulatedMotor right, int speed) {
 		this.controller = controller;
 		this.sesnsor = sesnsor;
 		this.targetDistance = targetDistance;
 		this.left = left;
 		this.right = right;
+		this.speed = speed;
 		
 		this.pastDistance = new int[10];
 		this.pastDistanceOffset = 0;
@@ -52,18 +55,16 @@ public class DistanceMonitor implements Runnable {
 				}
 			}
 			
-			int speed = 100;
 			int dist = this.sesnsor.getDistance();
 			if (Math.abs(dist - this.targetDistance) > CORRECTION_RANGE) {
-				if (this.numDists > 3) {
+				if (this.numDists > 1) {
 					this.controller.handleNoRightWall();
 					this.pause();
 				}
 				continue;
 			}
 			
-			//System.out.println("d=" + dist + " t=" + this.trend);
-			int diff = Math.abs(dist - this.targetDistance) * 7;
+			int diff = Math.abs(dist - this.targetDistance) * 8;
 			if (dist > this.targetDistance && this.trend >= 0) {
 				this.left.setSpeed(speed + diff);
 				this.right.setSpeed(speed);

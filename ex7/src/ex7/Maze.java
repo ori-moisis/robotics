@@ -1,7 +1,11 @@
 package ex7;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import javax.microedition.lcdui.Graphics;
 
+import lejos.nxt.Button;
 import ex7.MazeBlock.Direction;
 
 public class Maze {
@@ -9,13 +13,17 @@ public class Maze {
 		void handleMazeFinish();
 	}
 	
+	public enum Movement {
+		FORWARD, LEFT, RIGHT, BACKWARD;
+	}
+	
 	
 	MazeBlock maze[][];
 	int x,y;
 	int xOffset, yOffset;
-	MazeBlock currentBlock;
 	MazeBlock.Direction currentDirection;
 	MazeBlock.Direction initialDirection;
+	MazeBlock blackBlock;
 	boolean isStarted;
 	boolean isMoved;
 	MazeFinishListener listener;
@@ -52,18 +60,48 @@ public class Maze {
 	}
 	
 	public void setBlack() {
-		this.getBlock(x, y, false).setBlack(true);
+		this.blackBlock = this.getBlock(x, y, false); 
+		this.blackBlock.setBlack(true);
 	}
 	
 	public void turn() {
 		this.currentDirection = this.currentDirection.right();
-		if (this.isFinished()) {
+		if (this.isFinished() && this.listener != null) {
 			this.listener.handleMazeFinish();
 		}
 	}
 	
 	public boolean isFinished() {
 		return this.isMoved && this.getBlock(x, y, false).isStart() && currentDirection == initialDirection;
+	}
+	
+	
+	public Movement[] getPathToBlack() {
+		// First, calculate all distances
+		this.blackBlock.updateNeighbors();
+		
+		MazeBlock currBlock = this.getBlock(x, y, false);
+		MazeBlock.Direction currDirection = this.currentDirection;
+		
+		Movement[] moves = new Movement[currBlock.getDistanceToBlack()];
+		for (int i = 0; i < moves.length; ++i) {
+			MazeBlock.Direction travelDirection = currBlock.getDirectionToBlack();
+			System.out.println("td=" + travelDirection.name());
+			if (travelDirection == currDirection) {
+				moves[i] = Movement.FORWARD;
+			} else if (travelDirection == currDirection.right()) {
+				moves[i] = Movement.RIGHT;
+			} else if (travelDirection == currDirection.opposite()) {
+				moves[i] = Movement.BACKWARD;
+			} else {
+				moves[i] = Movement.LEFT;
+			}
+			
+			currBlock = currBlock.getNieghbor(travelDirection);
+			currDirection = travelDirection;
+		}
+		
+		return moves;
 	}
 	
 	public void forward() {
@@ -90,10 +128,18 @@ public class Maze {
 			break;
 		}
 		
+		MazeBlock prevBlock = this.getBlock(x, y, false);
+		
 		this.x += xDir;
 		this.y += yDir;
 		this.xOffset = Math.min(this.x, this.xOffset);
 		this.yOffset = Math.min(this.y, this.yOffset);
+		
+		MazeBlock currBlock = this.getBlock(x, y, false);
+		
+		prevBlock.addNieghbor(this.currentDirection, currBlock);
+		currBlock.addNieghbor(this.currentDirection.opposite(), prevBlock);
+		
 		if (this.isFinished()) {
 			this.listener.handleMazeFinish();
 		}

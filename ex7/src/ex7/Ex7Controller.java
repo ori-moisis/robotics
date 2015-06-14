@@ -11,8 +11,9 @@ import lejos.robotics.navigation.DifferentialPilot;
 import lejos.util.Delay;
 
 public class Ex7Controller implements Maze.MazeFinishListener {
-	static int NORMAL_ACC = 30;
-	static int NORMAL_SPEED = 7;
+	static int NORMAL_ACC = 100;
+	static int NORMAL_SPEED = 300;
+	static int ARC_SPEED = 20;
 	static int ROTATION_SPEED = 50;
 	static float DEG_OFFSET = 162;
 	static int WALL_THRESHOLD = 17;
@@ -50,7 +51,6 @@ public class Ex7Controller implements Maze.MazeFinishListener {
 		rightWheel = Motor.A;
 		
 		pilot = new DifferentialPilot(DifferentialPilot.WHEEL_SIZE_RCX, 13.9, leftWheel, rightWheel);
-		pilot.setTravelSpeed(NORMAL_SPEED);
 		pilot.setRotateSpeed(ROTATION_SPEED);
 		pilot.setAcceleration(NORMAL_ACC);
 		
@@ -67,10 +67,10 @@ public class Ex7Controller implements Maze.MazeFinishListener {
 		rightNoWall = false;
 		alert = new Object();
 		
-		rightDistMonitor = new DistanceMonitor(this, this.ultraRight, 9, Motor.C, Motor.A);
+		rightDistMonitor = new DistanceMonitor(this, this.ultraRight, 10, Motor.C, Motor.A, NORMAL_SPEED);
 		rightDistMonitorThread = new Thread(rightDistMonitor);
 		
-		frontDistMonitor = new FrontMonitor(this, this.ultraFront, 12);
+		frontDistMonitor = new FrontMonitor(this, this.ultraFront, 15);
 		frontDistMonitorThread = new Thread(frontDistMonitor);
 	}
 	
@@ -123,6 +123,13 @@ public class Ex7Controller implements Maze.MazeFinishListener {
 		}
 	}
 	
+	void doArc(double ang) {
+		this.pilot.setTravelSpeed(ARC_SPEED);
+		this.pilot.arc(14 * ang / Math.abs(ang), ang);
+		this.leftWheel.setSpeed(NORMAL_SPEED);
+		this.rightWheel.setSpeed(NORMAL_SPEED);
+	}
+	
 	public void start() {
 
 		this.rightDistMonitor.pause();
@@ -145,7 +152,7 @@ public class Ex7Controller implements Maze.MazeFinishListener {
 			synchronized (this.alert) {
 				try {
 					if (!this.rightNoWall && !this.frontWall) {
-						this.alert.wait(500);
+						this.alert.wait(200);
 					}
 				} catch (InterruptedException e) {
 					// TODO Auto-generated catch block
@@ -162,10 +169,8 @@ public class Ex7Controller implements Maze.MazeFinishListener {
 				// The case in which we have one more forward to perform
 				this.checkForward(true);
 				
-				this.pilot.arc(-15, -90 - this.rightDistMonitor.getTrend());
-//				this.pilot.travel(16);
-//				int rotate = -90 - this.rightDistMonitor.getTrend();
-//				this.pilot.rotate(rotate);
+				this.doArc(-90 - this.rightDistMonitor.getTrend());
+				//this.pilot.arc(-15, -90 - this.rightDistMonitor.getTrend());
 				this.pilot.forward();
 				
 				this.maze.turn();
@@ -214,8 +219,57 @@ public class Ex7Controller implements Maze.MazeFinishListener {
 		} while (! this.maze.isFinished());
 		
 		this.pilot.stop();
-		this.light.setFloodlight(false);
 		this.maze.drawMaze();
+		this.frontDistMonitor.stop();
+		this.rightDistMonitor.stop();
+		
+		
+		Button.waitForAnyPress();
+		
+		Maze.Movement moves[] = this.maze.getPathToBlack();
+		
+		int travelDist = 0;
+		for (Maze.Movement move : moves) {
+			switch (move) {
+			case LEFT:
+				travelDist -= BLOCK_SIZE / 2;
+				break;
+			case RIGHT:
+				travelDist -= BLOCK_SIZE / 2;
+				break;
+			default:
+				break;
+			}
+			
+			if (move != Maze.Movement.FORWARD) {
+				this.pilot.travel(travelDist);
+				travelDist = 0;
+			}
+			
+			switch (move) {
+			case LEFT:
+				this.doArc(90);
+				//this.pilot.arc(15, 90);
+				travelDist += BLOCK_SIZE / 2;
+				break;
+			case RIGHT:
+				this.doArc(-90);
+				//this.pilot.arc(-15, -90);
+				travelDist += BLOCK_SIZE / 2;
+				break;
+			case BACKWARD:
+				this.pilot.rotate(180);
+				travelDist += BLOCK_SIZE;
+				break;
+			case FORWARD:
+				travelDist += BLOCK_SIZE;
+				break;
+			default:
+				break;
+			}
+		}
+		
+		this.pilot.travel(travelDist);
 		
 //		boolean lastDidForward = false;
 //		do {
