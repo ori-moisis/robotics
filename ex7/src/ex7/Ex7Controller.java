@@ -112,7 +112,8 @@ public class Ex7Controller implements Maze.MazeFinishListener {
 			this.maze.forward();
 		}
 		
-		if (this.forwardMarked > this.lastForwardMarked) {
+		if (this.forwardMarked > this.lastForwardMarked &&
+			(this.forwardMarked == 0 || offsetInBlock > 4)) {
 			if (this.isBlack()) {
 				this.maze.setBlack();
 			}
@@ -170,7 +171,7 @@ public class Ex7Controller implements Maze.MazeFinishListener {
 				this.maze.forward();
 				this.forwardMarked = 1;
 				this.lastForwardMarked = 0;
-				this.movementOffset = BLOCK_SIZE / 2;
+				this.movementOffset = BLOCK_SIZE / 3;
 				
 				this.frontWall = false;
 				this.rightNoWall = false;
