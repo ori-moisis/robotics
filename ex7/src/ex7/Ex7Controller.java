@@ -3,30 +3,36 @@ package ex7;
 import lejos.nxt.Button;
 import lejos.nxt.LightSensor;
 import lejos.nxt.Motor;
+import lejos.nxt.NXTRegulatedMotor;
 import lejos.nxt.SensorPort;
 import lejos.nxt.UltrasonicSensor;
 import lejos.nxt.addon.CompassHTSensor;
 import lejos.robotics.navigation.DifferentialPilot;
 import lejos.util.Delay;
-import lejos.util.Stopwatch;
 
 public class Ex7Controller {
 	static int NORMAL_ACC = 30;
 	static int NORMAL_SPEED = 7;
 	static int ROTATION_SPEED = 50;
 	static float DEG_OFFSET = 162;
-	static int WALL_THRESHOLD = 22;
+	static int WALL_THRESHOLD = 17;
 	static int BLACK_THRESHOLD = 40;
 	static int BLOCK_SIZE = 31;
+	static int BLOCK_SIZE_IN_TACHO = 320;
+	
+	
+	NXTRegulatedMotor leftWheel;
+	NXTRegulatedMotor rightWheel;
 	
 	DifferentialPilot pilot;
 	LightSensor light;
 	UltrasonicSensor ultraFront;
 	UltrasonicSensor ultraRight;
 	CompassHTSensor compass;
-	Stopwatch stopwatch;
 	Maze maze;
 	
+	int forwardMarked;
+	int lastForwardMarked;
 	boolean frontWall;
 	boolean rightNoWall;
 	Object alert;
@@ -36,9 +42,13 @@ public class Ex7Controller {
 	
 	FrontMonitor frontDistMonitor;
 	Thread frontDistMonitorThread;
+	
 		
 	public Ex7Controller() {
-		pilot = new DifferentialPilot(DifferentialPilot.WHEEL_SIZE_RCX, 13.9, Motor.C, Motor.A);
+		leftWheel = Motor.C;
+		rightWheel = Motor.A;
+		
+		pilot = new DifferentialPilot(DifferentialPilot.WHEEL_SIZE_RCX, 13.9, leftWheel, rightWheel);
 		pilot.setTravelSpeed(NORMAL_SPEED);
 		pilot.setRotateSpeed(ROTATION_SPEED);
 		pilot.setAcceleration(NORMAL_ACC);
@@ -49,13 +59,13 @@ public class Ex7Controller {
 		ultraRight = new UltrasonicSensor(SensorPort.S3);
 		light = new LightSensor(SensorPort.S4, true);
 		
-		stopwatch = new Stopwatch();
+		forwardMarked = 0;
+		lastForwardMarked = -1;
+		frontWall = false;
+		rightNoWall = false;
+		alert = new Object();
 		
-		this.frontWall = false;
-		this.rightNoWall = false;
-		this.alert = new Object();
-		
-		rightDistMonitor = new DistanceMonitor(this, this.ultraRight, 10, Motor.C, Motor.A);
+		rightDistMonitor = new DistanceMonitor(this, this.ultraRight, 9, Motor.C, Motor.A);
 		rightDistMonitorThread = new Thread(rightDistMonitor);
 		
 		frontDistMonitor = new FrontMonitor(this, this.ultraFront, 12);
@@ -70,7 +80,6 @@ public class Ex7Controller {
 	}
 	
 	public void handleFrontWall() {
-		System.out.println("handleFront");
 		synchronized (this.alert) {
 			this.frontWall = true;
 			this.alert.notifyAll();
@@ -78,10 +87,28 @@ public class Ex7Controller {
 	}
 	
 	public void handleNoRightWall() {
-		System.out.println("handleNoRight");
 		synchronized (this.alert) {
 			this.rightNoWall = true;
 			this.alert.notifyAll();
+		}
+	}
+	
+
+	public void draw() {		
+		int forwardDone = ((int)this.pilot.getMovementIncrement()) / BLOCK_SIZE;
+		if (forwardDone > this.forwardMarked) {
+			this.forwardMarked += 1;
+			this.maze.forward();
+		}
+		// will go in every first time - will not go in without a call to forward
+		if (this.forwardMarked > this.lastForwardMarked) {
+			if (this.isBlack()) {
+				this.maze.setBlack();
+			}
+			if (this.hasWall(ultraRight)) {
+				this.maze.setWall();
+			}
+			this.lastForwardMarked += 1;
 		}
 	}
 	
@@ -92,8 +119,6 @@ public class Ex7Controller {
 		
 		this.rightDistMonitorThread.start();
 		this.frontDistMonitorThread.start();
-				
-		Delay.msDelay(500);
 		
 		float deg = -1;
 		while (deg == -1) {
@@ -113,40 +138,77 @@ public class Ex7Controller {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
-				if (this.rightNoWall) {
-					// Turn right
-					this.frontDistMonitor.pause();
-					this.frontWall = false;
-					this.rightNoWall = false;
-					
-					
-					this.pilot.stop();
-					this.pilot.travel(15);
-					this.pilot.rotate(-90);
-					this.pilot.forward();
-					
-					this.rightDistMonitor.resume();
-					this.frontDistMonitor.resume();
-				}
-				else if (this.frontWall) {
-					// Turn left
-					this.rightDistMonitor.pause();
-					this.frontWall = false;
-					this.rightNoWall = false;
-					
-					this.pilot.stop();
-					this.pilot.rotate(90);
-					this.pilot.forward();
-					
-					this.rightDistMonitor.resume();
-					this.frontDistMonitor.resume();
-				} else {
-					// Go straight
-					this.pilot.forward();
-					this.rightDistMonitor.resume();
-					this.frontDistMonitor.resume();
-				}
 			}
+			if (this.rightNoWall) {
+				// Turn right
+				this.frontDistMonitor.pause();
+				this.rightDistMonitor.pause();
+				// The case in which we have one more forward to perform
+				if (((int)this.pilot.getMovementIncrement() - this.forwardMarked*BLOCK_SIZE) >= 10) {
+					this.maze.forward();
+					if (this.isBlack()) {
+						this.maze.setBlack();
+					}
+					if (this.hasWall(ultraRight)) {
+						this.maze.setWall();
+					}	
+				}
+				this.pilot.travel(16);
+				int rotate = -90 - this.rightDistMonitor.getTrend();
+				this.pilot.rotate(rotate);
+				this.pilot.forward();
+				
+				this.maze.turn();
+				this.forwardMarked = 0;
+				this.lastForwardMarked = -1;
+				
+				this.frontWall = false;
+				this.rightNoWall = false;
+				
+				this.rightDistMonitor.resume();
+				this.frontDistMonitor.resume();
+			}
+			else if (this.frontWall) {
+				// Turn left
+				this.rightDistMonitor.pause();
+				this.frontDistMonitor.pause();				
+				// The case in which we have one more forward to perform
+				if (((int)this.pilot.getMovementIncrement() - this.forwardMarked*BLOCK_SIZE) >= 10) {
+					this.maze.forward();
+					if (this.isBlack()) {
+						this.maze.setBlack();
+					}
+					if (this.hasWall(ultraRight)) {
+						this.maze.setWall();
+					}	
+				}
+				
+				this.pilot.stop();
+				int rotate = 90 - this.rightDistMonitor.getTrend();
+				this.pilot.rotate(rotate);
+				this.pilot.forward();
+				
+				this.maze.turn();
+				this.maze.turn();
+				this.maze.turn();
+				this.forwardMarked = 0;
+				this.lastForwardMarked = -1;
+				
+				this.frontWall = false;
+				this.rightNoWall = false;
+				
+				this.rightDistMonitor.resume();
+				this.frontDistMonitor.resume();
+			} else {
+				// Go straight
+				if (! this.pilot.isMoving()) {
+					this.pilot.forward();
+				}
+				this.rightDistMonitor.resume();
+				this.frontDistMonitor.resume();
+			}
+			this.draw();
+			this.maze.drawMaze();
 		} while (true);
 		
 //		boolean lastDidForward = false;

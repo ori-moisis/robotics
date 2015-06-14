@@ -22,7 +22,6 @@ public class FrontMonitor implements Runnable {
 		this.stopped = false;
 	}
 	
-	@Override
 	public void run() {
 		while (! this.stopped) {
 			while (this.paused) {
