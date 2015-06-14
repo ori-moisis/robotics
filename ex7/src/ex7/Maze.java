@@ -5,14 +5,22 @@ import javax.microedition.lcdui.Graphics;
 import ex7.MazeBlock.Direction;
 
 public class Maze {
+	public interface MazeFinishListener {
+		void handleMazeFinish();
+	}
+	
+	
 	MazeBlock maze[][];
 	int x,y;
 	int xOffset, yOffset;
 	MazeBlock currentBlock;
 	MazeBlock.Direction currentDirection;
 	MazeBlock.Direction initialDirection;
+	boolean isStarted;
+	boolean isMoved;
+	MazeFinishListener listener;
 	
-	public Maze(int rows, int cols, Direction initialDirection) {
+	public Maze(int rows, int cols, Direction initialDirection, MazeFinishListener listener) {
 		this.maze = new MazeBlock[rows][cols];
 		for (int i = 0; i < rows; ++i) {
 			for (int j = 0; j < cols; ++j) {
@@ -23,9 +31,11 @@ public class Maze {
 		this.y = 0;
 		this.xOffset = 0;
 		this.yOffset = 0;
-		this.maze[this.x][this.y].setStart(true);
+		this.isStarted = false;
+		this.isMoved = false;
 		this.currentDirection = initialDirection;
 		this.initialDirection = initialDirection;
+		this.listener = listener;
 	}
 	
 	public MazeBlock.Direction getDirection() {
@@ -33,6 +43,11 @@ public class Maze {
 	}
 	
 	public void setWall() {
+		if (!this.isStarted) {
+			this.getBlock(x, y, false).setStart(true);
+			this.initialDirection = this.currentDirection;
+			this.isStarted = true;
+		}
 		this.getBlock(x, y, false).addWall(this.currentDirection.right());
 	}
 	
@@ -42,14 +57,18 @@ public class Maze {
 	
 	public void turn() {
 		this.currentDirection = this.currentDirection.right();
+		if (this.isFinished()) {
+			this.listener.handleMazeFinish();
+		}
 	}
 	
 	public boolean isFinished() {
-		return x == 0 && y == 0 && currentDirection == initialDirection;
+		return this.isMoved && this.getBlock(x, y, false).isStart() && currentDirection == initialDirection;
 	}
 	
 	public void forward() {
 		int xDir = 0,yDir = 0;
+		this.isMoved = true;
 		switch (this.currentDirection) {
 		case NORTH:
 			xDir = -1;
@@ -75,6 +94,9 @@ public class Maze {
 		this.y += yDir;
 		this.xOffset = Math.min(this.x, this.xOffset);
 		this.yOffset = Math.min(this.y, this.yOffset);
+		if (this.isFinished()) {
+			this.listener.handleMazeFinish();
+		}
 	}
 	
 	MazeBlock getBlock(int x, int y) {

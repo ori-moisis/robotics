@@ -46,6 +46,8 @@ public class MazeBlock {
 	private List<MazeBlock> nieghbors;
 	
 	public MazeBlock() {
+		this.isStart = false;
+		this.isBlack = false;
 		this.walls = new boolean[] {false, false, false, false};
 		this.nieghbors = new ArrayList<MazeBlock>();
 	}

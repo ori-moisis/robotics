@@ -10,7 +10,7 @@ import lejos.nxt.addon.CompassHTSensor;
 import lejos.robotics.navigation.DifferentialPilot;
 import lejos.util.Delay;
 
-public class Ex7Controller {
+public class Ex7Controller implements Maze.MazeFinishListener {
 	static int NORMAL_ACC = 30;
 	static int NORMAL_SPEED = 7;
 	static int ROTATION_SPEED = 50;
@@ -93,8 +93,13 @@ public class Ex7Controller {
 		}
 	}
 	
+	public void handleMazeFinish() {
+		synchronized (this.alert) {
+			this.alert.notifyAll();
+		}
+	}
 
-	public void draw() {		
+	public void checkForward() {		
 		int forwardDone = ((int)this.pilot.getMovementIncrement()) / BLOCK_SIZE;
 		if (forwardDone > this.forwardMarked) {
 			this.forwardMarked += 1;
@@ -125,7 +130,7 @@ public class Ex7Controller {
 			deg = compass.getDegrees();
 		}
 		int dir = ((int)((deg + 45) / 90)) % 4;
-		maze = new Maze(6, 4, MazeBlock.Direction.values()[dir]);
+		maze = new Maze(6, 4, MazeBlock.Direction.values()[dir], this);
 		
 		this.frontDistMonitor.resume();
 		this.rightDistMonitor.resume();
@@ -133,12 +138,15 @@ public class Ex7Controller {
 		do {
 			synchronized (this.alert) {
 				try {
-					this.alert.wait(100);
+					if (!this.rightNoWall && !this.frontWall) {
+						this.alert.wait(500);
+					}
 				} catch (InterruptedException e) {
 					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
 			}
+			this.checkForward();
 			if (this.rightNoWall) {
 				// Turn right
 				this.frontDistMonitor.pause();
@@ -207,9 +215,12 @@ public class Ex7Controller {
 				this.rightDistMonitor.resume();
 				this.frontDistMonitor.resume();
 			}
-			this.draw();
 			this.maze.drawMaze();
-		} while (true);
+		} while (! this.maze.isFinished());
+		
+		this.pilot.stop();
+		this.light.setFloodlight(false);
+		this.maze.drawMaze();
 		
 //		boolean lastDidForward = false;
 //		do {

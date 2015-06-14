@@ -31,7 +31,7 @@ public class DistanceMonitor implements Runnable {
 		this.left = left;
 		this.right = right;
 		
-		this.pastDistance = new int[5];
+		this.pastDistance = new int[10];
 		this.pastDistanceOffset = 0;
 		this.numDists = 0;
 		this.trend = 0;
@@ -89,10 +89,17 @@ public class DistanceMonitor implements Runnable {
 			this.numDists += 1;
 			
 			if (this.numDists > this.pastDistance.length) {
-				int currTrend = dist - this.pastDistance[this.pastDistanceOffset];
-				this.trend = currTrend;
+				this.trend = dist - this.pastDistance[this.pastDistanceOffset];
+			} else {
+				this.trend = dist - this.getDist(this.numDists);
 			}
 		}
+	}
+	
+	int getDist(int before) {
+		int offset = (this.pastDistanceOffset - before) % this.pastDistance.length;
+		offset = offset < 0 ? this.pastDistance.length - 1 : offset;
+		return this.pastDistance[offset];
 	}
 	
 	int getLastDist() {
