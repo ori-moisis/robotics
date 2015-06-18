@@ -1,6 +1,7 @@
 package ex7;
 
 import lejos.nxt.Button;
+import lejos.util.Delay;
 
 public class Main {
 
@@ -10,54 +11,73 @@ public class Main {
 		
 //		Maze m = new Maze(6, 4, MazeBlock.Direction.SOUTH, null);
 //		m.setWall();
-//		m.forward();
-//		
-//		m.forward();
-//		m.setWall();
-//		m.forward();
-//		m.setWall();
-//		m.forward();
-//		m.setWall();
-//		m.forward();
-//		m.setWall();
-//		m.turn();
-//		m.turn();
-//		m.turn();
-//		m.setWall();
-//		m.forward();
-//		m.setWall();
+//		m.forward(); m.setWall();
+//		m.forward(); m.setWall();
+//		m.forward(); m.setWall();
+//		m.forward(); m.setWall();
+//		m.forward(); m.setWall();
+//		m.turn(); m.turn(); m.turn(); m.setWall();
+//		m.forward(); m.setWall();
+//		m.forward(); m.setWall();
+//		m.forward(); m.setWall();
+//		m.turn(); m.turn(); m.turn(); m.setWall();
+//		m.forward(); m.setWall();
+//		m.forward(); m.setWall();
+//		m.turn(); m.turn(); m.turn(); m.setWall();
+//		m.forward(); m.setWall();
+//		m.forward(); m.setWall();
+//		m.turn(); m.turn(); m.turn(); m.setWall();
+//		m.turn(); m.turn(); m.turn(); m.setWall();
+//		m.forward(); m.turn();
+//		m.forward(); m.setWall();
 //		m.setBlack();
+//		m.turn(); m.turn(); m.turn(); m.setWall();
+//		m.turn(); m.turn(); m.turn(); m.setWall();
+//		m.forward(); m.turn();
+//		m.forward(); m.turn();
+//		m.forward(); m.setWall();
+//		m.forward(); m.turn();
+//		m.forward(); m.setWall();
+//		m.forward(); m.turn();
+//		m.forward(); m.setWall();
+//		m.turn(); m.turn(); m.turn(); m.setWall();
+//		m.forward(); m.turn();
+//		m.forward(); m.setWall();
+//		m.forward(); m.turn();
+//		m.forward(); m.setWall();
+//		m.forward(); m.setWall();
+//		m.forward(); m.setWall();
+//		m.turn(); m.turn(); m.turn(); m.setWall();
+//		m.forward(); m.setWall();
+//		m.forward(); m.setWall();
+//		m.turn(); m.turn(); m.turn(); m.setWall();
+//		m.forward(); m.setWall();
+//		m.turn(); m.turn(); m.turn(); m.setWall();
+//		m.turn(); m.turn(); m.turn(); m.setWall();
+//		m.forward(); m.turn();
+//		m.forward(); m.turn();
+//		m.forward(); m.setWall();
+//		m.turn(); m.turn(); m.turn(); m.setWall();
+//		m.turn(); m.turn(); m.turn(); m.setWall();
+//		m.forward(); m.turn();
+//		m.forward(); m.turn();
+//		m.forward(); m.setWall();
+//		m.forward(); m.setWall();
+//		m.forward(); m.turn();
+//		m.forward(); m.setWall();
+//		m.forward(); m.setWall();
+//		m.turn(); m.turn(); m.turn(); m.setWall();
+//		m.turn(); m.turn(); m.turn(); m.setWall();
+		
+//		m.drawMaze();
 //		
+//		Button.waitForAnyPress();
 //		
-//		m.turn();
-//		m.turn();
-//		m.turn();
-//		m.setWall();
-//		
-//		
-//		m.turn();
-//		m.turn();
-//		m.turn();
-//		m.setWall();
-//		
-//		
-//		m.forward();
-//		m.turn();
-//		m.forward();
-//		m.setWall();
-//		m.forward();
-//		
-//		m.forward();
-//		m.setWall();
-//		m.forward();
-//		m.forward();
-//		m.setWall();
-//		//m.drawMaze();
-//		
-//		Maze.Movement[] path = m.getPathToBlack();
-//		for (Maze.Movement move : path) {
+//		Movement[] path = m.getPathToBlack();
+//		for (Movement move : path) {
 //			if (move != null) {
-//				System.out.println(move.name());
+//				Delay.msDelay(500);
+//				System.out.println(move.getDirection().name() + " w=" + move.hasWall());
 //			}
 //		}
 		

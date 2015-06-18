@@ -60,6 +60,7 @@ public class Ex7Controller implements Maze.MazeFinishListener {
 		ultraRight = new UltrasonicSensor(SensorPort.S3);
 		light = new LightSensor(SensorPort.S4, true);
 		
+		//maze = new Maze(6, 4, MazeBlock.Direction.SOUTH, this);
 		forwardMarked = 0;
 		lastForwardMarked = -1;
 		movementOffset = 0;
@@ -72,6 +73,73 @@ public class Ex7Controller implements Maze.MazeFinishListener {
 		
 		frontDistMonitor = new FrontMonitor(this, this.ultraFront, 15);
 		frontDistMonitorThread = new Thread(frontDistMonitor);
+		
+		
+		
+		
+		Maze m = new Maze(6, 4, MazeBlock.Direction.SOUTH, null);
+		m.setWall();
+		m.forward(); m.setWall();
+		m.forward(); m.setWall();
+		m.forward(); m.setWall();
+		m.forward(); m.setWall();
+		m.forward(); m.setWall();
+		m.turn(); m.turn(); m.turn(); m.setWall();
+		m.forward(); m.setWall();
+		m.forward(); m.setWall();
+		m.forward(); m.setWall();
+		m.turn(); m.turn(); m.turn(); m.setWall();
+		m.forward(); m.setWall();
+		m.forward(); m.setWall();
+		m.turn(); m.turn(); m.turn(); m.setWall();
+		m.forward(); m.setWall();
+		m.forward(); m.setWall();
+		m.turn(); m.turn(); m.turn(); m.setWall();
+		m.turn(); m.turn(); m.turn(); m.setWall();
+		m.forward(); m.turn();
+		m.forward(); m.setWall();
+		m.setBlack();
+		m.turn(); m.turn(); m.turn(); m.setWall();
+		m.turn(); m.turn(); m.turn(); m.setWall();
+		m.forward(); m.turn();
+		m.forward(); m.turn();
+		m.forward(); m.setWall();
+		m.forward(); m.turn();
+		m.forward(); m.setWall();
+		m.forward(); m.turn();
+		m.forward(); m.setWall();
+		m.turn(); m.turn(); m.turn(); m.setWall();
+		m.forward(); m.turn();
+		m.forward(); m.setWall();
+		m.forward(); m.turn();
+		m.forward(); m.setWall();
+		m.forward(); m.setWall();
+		m.forward(); m.setWall();
+		m.turn(); m.turn(); m.turn(); m.setWall();
+		m.forward(); m.setWall();
+		m.forward(); m.setWall();
+		m.turn(); m.turn(); m.turn(); m.setWall();
+		m.forward(); m.setWall();
+		m.turn(); m.turn(); m.turn(); m.setWall();
+		m.turn(); m.turn(); m.turn(); m.setWall();
+		m.forward(); m.turn();
+		m.forward(); m.turn();
+		m.forward(); m.setWall();
+		m.turn(); m.turn(); m.turn(); m.setWall();
+		m.turn(); m.turn(); m.turn(); m.setWall();
+		m.forward(); m.turn();
+		m.forward(); m.turn();
+		m.forward(); m.setWall();
+		m.forward(); m.setWall();
+		m.forward(); m.turn();
+		m.forward(); m.setWall();
+		m.forward(); m.setWall();
+		m.turn(); m.turn(); m.turn(); m.setWall();
+		m.turn(); m.turn(); m.turn(); m.setWall();
+		this.maze = m;
+		
+		
+		
 	}
 	
 	public void bla() {
@@ -125,26 +193,12 @@ public class Ex7Controller implements Maze.MazeFinishListener {
 	
 	void doArc(double ang) {
 		this.pilot.setTravelSpeed(ARC_SPEED);
-		this.pilot.arc(14 * ang / Math.abs(ang), ang);
+		this.pilot.arc(13 * ang / Math.abs(ang), ang);
 		this.leftWheel.setSpeed(NORMAL_SPEED);
 		this.rightWheel.setSpeed(NORMAL_SPEED);
 	}
 	
-	public void start() {
-
-		this.rightDistMonitor.pause();
-		this.frontDistMonitor.pause();
-		
-		this.rightDistMonitorThread.start();
-		this.frontDistMonitorThread.start();
-		
-		float deg = -1;
-		while (deg == -1) {
-			deg = compass.getDegrees();
-		}
-		int dir = ((int)((deg + 45) / 90)) % 4;
-		maze = new Maze(6, 4, MazeBlock.Direction.values()[dir], this);
-		
+	void mapMaze() {
 		this.frontDistMonitor.resume();
 		this.rightDistMonitor.resume();
 		
@@ -219,43 +273,83 @@ public class Ex7Controller implements Maze.MazeFinishListener {
 		} while (! this.maze.isFinished());
 		
 		this.pilot.stop();
+	}
+	
+	public void start() {
+
+		this.rightDistMonitor.pause();
+		this.frontDistMonitor.pause();
+		
+		this.rightDistMonitorThread.start();
+		this.frontDistMonitorThread.start();
+		
+		//this.mapMaze();
+		
 		this.maze.drawMaze();
-		this.frontDistMonitor.stop();
-		this.rightDistMonitor.stop();
+		this.frontDistMonitor.pause();
+		this.rightDistMonitor.pause();
 		
 		
 		Button.waitForAnyPress();
+		System.out.println();
+		System.out.println();
+		System.out.println();
+		System.out.println();
 		
-		Maze.Movement moves[] = this.maze.getPathToBlack();
+		
+		
+		boolean isFirst = true;
+		Movement moves[] = this.maze.getPathToBlack();
 		
 		int travelDist = 0;
-		for (Maze.Movement move : moves) {
-			switch (move) {
+		boolean hasWall = false;
+		for (Movement move : moves) {
+			switch (move.getDirection()) {
 			case LEFT:
-				travelDist -= BLOCK_SIZE / 2;
+				if (!isFirst) {
+					travelDist -= BLOCK_SIZE / 2;
+				}
 				break;
 			case RIGHT:
-				travelDist -= BLOCK_SIZE / 2;
+				if (!isFirst) {
+					travelDist -= BLOCK_SIZE / 2;
+				}
 				break;
 			default:
 				break;
 			}
 			
-			if (move != Maze.Movement.FORWARD) {
+			if (move.getDirection() != Movement.Direction.FORWARD || hasWall != move.hasWall()) {
+				if (hasWall) {
+					this.rightDistMonitor.resume();
+				}
 				this.pilot.travel(travelDist);
 				travelDist = 0;
+				if (hasWall) {
+					this.rightDistMonitor.pause();
+				}
 			}
 			
-			switch (move) {
+			hasWall = move.hasWall();
+			
+			switch (move.getDirection()) {
 			case LEFT:
-				this.doArc(90);
-				//this.pilot.arc(15, 90);
-				travelDist += BLOCK_SIZE / 2;
+				if (!isFirst) {
+					this.doArc(90);
+					travelDist += BLOCK_SIZE*2 / 3;
+				} else {
+					pilot.rotate(90);
+					travelDist += BLOCK_SIZE;
+				}
 				break;
 			case RIGHT:
-				this.doArc(-90);
-				//this.pilot.arc(-15, -90);
-				travelDist += BLOCK_SIZE / 2;
+				if (!isFirst) {
+					this.doArc(-90);
+					travelDist += BLOCK_SIZE*2 / 3;
+				} else {
+					pilot.rotate(-90);
+					travelDist += BLOCK_SIZE;
+				}
 				break;
 			case BACKWARD:
 				this.pilot.rotate(180);
@@ -267,117 +361,10 @@ public class Ex7Controller implements Maze.MazeFinishListener {
 			default:
 				break;
 			}
+			isFirst = false;
 		}
 		
 		this.pilot.travel(travelDist);
-		
-//		boolean lastDidForward = false;
-//		do {
-//			if (isBlack()) {
-//				maze.setBlack();
-//			}
-//
-//			int trend = this.rightDistMonitor.getTrend();
-//			
-//			if (hasWall(ultraRight)) {
-//				if (lastDidForward && Math.abs(trend) < 6) {
-//					System.out.println("trend=" + trend);
-//					Delay.msDelay(1000);
-//					this.pilot.rotate(trend * -3);
-//				}
-//				maze.setWall();
-//				if (hasWall(ultraFront)) {
-//					if (lastDidForward) {
-//						int dist = 255;
-//						while (dist == 255) {
-//							dist = this.ultraFront.getDistance();
-//						}
-//						this.pilot.travel(dist - 12);
-//					}
-//					
-//					//this.turnWithCompass(105);
-//					this.pilot.rotate(90);
-//					maze.turn();
-//					maze.turn();
-//					maze.turn();
-//					lastDidForward = false;
-//				} else {
-//					this.pilot.travel(BLOCK_SIZE);
-//					maze.forward();
-//					lastDidForward = true;
-//				}
-//			} else {
-//				//this.turnWithCompass(-105);
-//				this.pilot.rotate(-90);
-//				this.pilot.travel(BLOCK_SIZE);
-//				maze.turn();
-//				maze.forward();
-//				lastDidForward = true;
-//			}
-//			//maze.drawMaze();
-//		} while (! maze.isFinished());
-		//maze.drawMaze();
-		
-//		this.rightDistMonitor.stop();
-//		this.frontDistMonitor.stop();
-//		try {
-//			this.rightDistMonitorThread.join();
-//			this.frontDistMonitorThread.join();
-//		} catch (InterruptedException e) {
-//			// TODO Auto-generated catch block
-//			e.printStackTrace();
-//		}
-	}
-	
-	double getHeading() {
-		Delay.msDelay(1000);
-		double dist[] = new double[10]; 
-		for (int i = 0; i < 10; ++i) {
-			dist[i] = this.compass.getDegreesCartesian();
-		}
-		double best = 0;
-		int bestAgree = -1;
-		for (int i = 0; i < 10; ++i) {
-			int numAgree = 0;
-			for (int j = 0; j < 10; ++j) {
-				if (Math.abs(dist[i] - dist[j]) < 0.1) {
-					++numAgree;
-				}
-			}
-			if (numAgree > bestAgree) {
-				bestAgree = numAgree;
-				best = dist[i];
-			}
-		}
-		if (bestAgree < 5) {
-			System.out.println("bad heading");
-		}
-		return best;
-	}
-	
-	public void turnWithCompass(int angle) {
-		this.compass.resetCartesianZero();
-		//this.pilot.rotate(angle);
-		angle = angle < 0 ? angle + 360 : angle;
-		double deg = this.getHeading();
-		while ((int)deg != angle) {
-			System.out.println("d=" + deg + " t=" + angle);
-			double degMod = (((deg - angle + 180) % 360) + 360) % 360;
-			this.pilot.rotate((int)(180 - degMod));
-			deg = this.getHeading();
-		}
-	}
-	
-	public void turnTo(MazeBlock.Direction direction) {
-		Delay.msDelay(500);
-		float deg = this.compass.getDegrees();
-		while (deg != direction.getHeading()) {
-			System.out.println("d=" + deg + " t=" + direction.getHeading());
-			float degMod = (((direction.getHeading() - deg + 180) % 360) + 360) % 360;
-			this.pilot.rotate(180 - degMod);
-			Delay.msDelay(500);
-			deg = this.compass.getDegrees();
-		}
 	}
 	
 	public boolean isBlack() {
@@ -394,31 +381,5 @@ public class Ex7Controller implements Maze.MazeFinishListener {
 			dist = sensor.getDistance();
 		}
 		return dist < WALL_THRESHOLD;
-	}
-	
-	public void handleDistance(int dist) {
-		// Slow down when approaching the ball
-		this.pilot.setTravelSpeed(Math.min(NORMAL_SPEED, dist));
-	}
-	
-	public int getDistance(UltrasonicSensor sensor) {
-		int dist = 255;
-		while (dist == 255) {
-			dist = sensor.getDistance();
-		}
-		return dist;
-	}
-	
-	public void resetHeading() {
-		float deg = 3;
-		while (Math.abs(deg) > 2) {
-			do {
-				deg = compass.getDegreesCartesian();
-			} while (deg == -1);
-			if (deg > 180) {
-				deg = deg - 360;
-			}
-			this.pilot.rotate(-deg);
-		}
 	}
 }

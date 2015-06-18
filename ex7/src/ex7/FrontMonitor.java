@@ -4,9 +4,12 @@ import lejos.nxt.UltrasonicSensor;
 
 public class FrontMonitor implements Runnable {
 
+	static final int SAFETY = 2;
+	
 	Ex7Controller controller;
 	UltrasonicSensor sesnsor;
 	int threshhold;
+	int numTresh;
 	
 	boolean paused;
 	Object pausedEvent;
@@ -16,6 +19,7 @@ public class FrontMonitor implements Runnable {
 		this.controller = controller;
 		this.sesnsor = sensor;
 		this.threshhold = threshhold;
+		this.numTresh = 0;
 		
 		this.paused = false;
 		this.pausedEvent = new Object();
@@ -35,14 +39,19 @@ public class FrontMonitor implements Runnable {
 			
 			int dist = this.sesnsor.getDistance();
 			if (dist < this.threshhold) {
-				this.controller.handleFrontWall();
-				this.paused = true;
+				if (++this.numTresh >= SAFETY) {
+					this.controller.handleFrontWall();
+					this.pause();
+				}
+			} else {
+				this.numTresh = 0;
 			}
 		}
 	}
 
 	public void pause() {
 		this.paused = true;
+		this.numTresh = 0;
 	}
 	
 	public void stop() {

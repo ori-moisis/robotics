@@ -1,12 +1,7 @@
 package ex7;
 
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
 
 public class MazeBlock {
 	public enum Direction {
@@ -56,7 +51,8 @@ public class MazeBlock {
 	private int distToBlack;
 	private Direction directionToBlack;
 	
-	@SuppressWarnings("deprecation")
+	public int x, y;
+	
 	public MazeBlock() {
 		this.isStart = false;
 		this.isBlack = false;
@@ -64,6 +60,10 @@ public class MazeBlock {
 		this.nieghbors = new MazeBlock[4];
 		this.distToBlack = 100;
 		this.directionToBlack = Direction.NORTH;
+		
+		
+		x = -1;
+		y = -1;
 	}
 
 	public boolean isStart() {
