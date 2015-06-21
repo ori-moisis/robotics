@@ -1,5 +1,7 @@
 package ex7;
 
+import javax.microedition.lcdui.Graphics;
+
 import lejos.nxt.Button;
 import lejos.nxt.LightSensor;
 import lejos.nxt.Motor;
@@ -9,6 +11,7 @@ import lejos.nxt.UltrasonicSensor;
 import lejos.nxt.addon.CompassHTSensor;
 import lejos.robotics.navigation.DifferentialPilot;
 import lejos.util.Delay;
+import lejos.util.Stopwatch;
 
 public class Ex7Controller implements Maze.MazeFinishListener {
 	static int NORMAL_ACC = 100;
@@ -33,6 +36,7 @@ public class Ex7Controller implements Maze.MazeFinishListener {
 	UltrasonicSensor ultraRight;
 	CompassHTSensor compass;
 	Maze maze;
+	Stopwatch timer;
 	
 	int forwardMarked;
 	int lastForwardMarked;
@@ -62,8 +66,10 @@ public class Ex7Controller implements Maze.MazeFinishListener {
 		compass = new CompassHTSensor(SensorPort.S2);
 		ultraRight = new UltrasonicSensor(SensorPort.S3);
 		light = new LightSensor(SensorPort.S4, true);
-		
+
 		maze = new Maze(6, 4, MazeBlock.Direction.SOUTH, this);
+		timer = new Stopwatch();
+		
 		forwardMarked = 0;
 		lastForwardMarked = -1;
 		movementOffset = 0;
@@ -76,80 +82,6 @@ public class Ex7Controller implements Maze.MazeFinishListener {
 		
 		frontDistMonitor = new FrontMonitor(this, this.ultraFront, 15);
 		frontDistMonitorThread = new Thread(frontDistMonitor);
-		
-		
-		
-		
-//		Maze m = new Maze(6, 4, MazeBlock.Direction.SOUTH, null);
-//		m.setWall();
-//		m.forward(); m.setWall();
-//		m.forward(); m.setWall();
-//		m.forward(); m.setWall();
-//		m.forward(); m.setWall();
-//		m.forward(); m.setWall();
-//		m.turn(); m.turn(); m.turn(); m.setWall();
-//		m.forward(); m.setWall();
-//		m.forward(); m.setWall();
-//		m.forward(); m.setWall();
-//		m.turn(); m.turn(); m.turn(); m.setWall();
-//		m.forward(); m.setWall();
-//		m.forward(); m.setWall();
-//		m.turn(); m.turn(); m.turn(); m.setWall();
-//		m.forward(); m.setWall();
-//		m.forward(); m.setWall();
-//		m.turn(); m.turn(); m.turn(); m.setWall();
-//		m.turn(); m.turn(); m.turn(); m.setWall();
-//		m.forward(); m.turn();
-//		m.forward(); m.setWall();
-//		m.turn(); m.turn(); m.turn(); m.setWall();
-//		m.turn(); m.turn(); m.turn(); m.setWall();
-//		m.setBlack();
-//		m.forward(); m.turn();
-//		m.forward(); m.turn();
-//		m.forward(); m.setWall();
-//		m.forward(); m.turn();
-//		m.forward(); m.setWall();
-//		m.forward(); m.turn();
-//		m.forward(); m.setWall();
-//		m.turn(); m.turn(); m.turn(); m.setWall();
-//		m.forward(); m.turn();
-//		m.forward(); m.setWall();
-//		m.forward(); m.turn();
-//		m.forward(); m.setWall();
-//		m.forward(); m.setWall();
-//		m.forward(); m.setWall();
-//		m.turn(); m.turn(); m.turn(); m.setWall();
-//		m.forward(); m.setWall();
-//		m.forward(); m.setWall();
-//		m.turn(); m.turn(); m.turn(); m.setWall();
-//		m.forward(); m.setWall();
-//		m.turn(); m.turn(); m.turn(); m.setWall();
-//		m.turn(); m.turn(); m.turn(); m.setWall();
-//		m.forward(); m.turn();
-//		m.forward(); m.turn();
-//		m.forward(); m.setWall();
-//		m.turn(); m.turn(); m.turn(); m.setWall();
-//		m.turn(); m.turn(); m.turn(); m.setWall();
-//		m.forward(); m.turn();
-//		m.forward(); m.turn();
-//		m.forward(); m.setWall();
-//		m.forward(); m.setWall();
-//		m.forward(); m.turn();
-//		m.forward(); m.setWall();
-//		m.forward(); m.setWall();
-//		m.turn(); m.turn(); m.turn(); m.setWall();
-//		m.turn(); m.turn(); m.turn(); m.setWall();
-//		this.maze = m;
-		
-		
-		
-	}
-	
-	public void bla() {
-		while (true) {
-			//System.out.println("deg=" + this.compass.getDegrees());
-			Delay.msDelay(500);
-		}
 	}
 	
 	public void handleFrontWall() {
@@ -288,14 +220,21 @@ public class Ex7Controller implements Maze.MazeFinishListener {
 		this.frontDistMonitorThread.start();
 		
 		this.pilot.setTravelSpeed(20);
-		
+		this.timer.reset();
 		this.mapMaze();
+		float time = this.timer.elapsed();
+		time /= 1000;
 		
 		this.maze.drawMaze();
 		this.frontDistMonitor.pause();
 		this.rightDistMonitor.pause();
 		
 		Button.waitForAnyPress();
+		
+		new Graphics().clear();
+		System.out.println("time to map maze: " + time);
+		
+		this.timer.reset();
 		
 		boolean isFirst = true;
 		Movement moves[] = this.maze.getPathToBlack();
@@ -447,6 +386,9 @@ public class Ex7Controller implements Maze.MazeFinishListener {
 		this.rightDistMonitor.resume();
 		this.pilot.travel(travelDist);
 		
+		System.out.println("Time to reach black=" + (float)this.timer.elapsed() / 1000);
+		
+		Button.waitForAnyPress();
 	}
 	
 	public boolean isBlack() {
