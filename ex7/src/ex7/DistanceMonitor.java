@@ -6,8 +6,8 @@ import lejos.util.Delay;
 
 public class DistanceMonitor implements Runnable {
 
-	static int CORRECTION_RANGE = 5;
-	static int TURN_RATE = 5;
+	static int CORRECTION_RANGE = 4;
+	static int TURN_RATE = 8;
 	
 	Ex7Controller controller;
 	UltrasonicSensor sesnsor;
@@ -20,9 +20,11 @@ public class DistanceMonitor implements Runnable {
 	int pastDistanceOffset;
 	int numDists;
 	int trend;
+	boolean shouldPause;
 	
 	
 	boolean paused;
+	boolean reallyPaused;
 	Object pausedEvent;
 	boolean stopped;
 	
@@ -38,8 +40,10 @@ public class DistanceMonitor implements Runnable {
 		this.pastDistanceOffset = 0;
 		this.numDists = 0;
 		this.trend = 0;
+		this.shouldPause = true;
 		
 		this.paused = false;
+		this.reallyPaused = false;
 		this.pausedEvent = new Object();
 		this.stopped = false;
 	}
@@ -47,6 +51,7 @@ public class DistanceMonitor implements Runnable {
 	public void run() {
 		while (! this.stopped) {
 			while (this.paused) {
+				this.reallyPaused = true;
 				try {
 					synchronized (pausedEvent) {
 						this.pausedEvent.wait(1000);
@@ -54,17 +59,23 @@ public class DistanceMonitor implements Runnable {
 				} catch (InterruptedException e) {
 				}
 			}
+			this.reallyPaused = false;
 			
 			int dist = this.sesnsor.getDistance();
 			if (Math.abs(dist - this.targetDistance) > CORRECTION_RANGE) {
 				if (this.numDists > 1) {
 					this.controller.handleNoRightWall();
-					this.pause();
+					if (this.shouldPause) {
+						this.pause();
+					}
+				} else {
+					this.numDists = 0;
+					this.trend = 0;
 				}
 				continue;
 			}
 			
-			int diff = Math.abs(dist - this.targetDistance) * 8;
+			int diff = Math.abs(dist - this.targetDistance) * TURN_RATE;
 			if (dist > this.targetDistance && this.trend >= 0) {
 				this.left.setSpeed(speed + diff);
 				this.right.setSpeed(speed);
@@ -113,10 +124,24 @@ public class DistanceMonitor implements Runnable {
 		return this.trend;
 	}
 	
+	public void doNotPause() {
+		this.shouldPause = false;
+	}
+	
+	public void setTargetDist(int target) {
+		this.targetDistance = target;
+	}
+	
 	public void pause() {
+		this.left.setSpeed(speed);
+		this.right.setSpeed(speed);
 		this.numDists = 0;
 		this.trend = 0;
 		this.paused = true;
+	}
+	
+	public boolean isPaused() {
+		return this.reallyPaused;
 	}
 	
 	public void stop() {

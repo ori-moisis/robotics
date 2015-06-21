@@ -18,8 +18,10 @@ public class Ex7Controller implements Maze.MazeFinishListener {
 	static float DEG_OFFSET = 162;
 	static int WALL_THRESHOLD = 17;
 	static int BLACK_THRESHOLD = 40;
-	static int BLOCK_SIZE = 31;
+	static int BLOCK_SIZE = 30;
 	static int BLOCK_SIZE_IN_TACHO = 320;
+	static int RIGHT_TRAGET_DIST = 10;
+	static int LEFT_TRAGET_DIST = 8;
 	
 	
 	NXTRegulatedMotor leftWheel;
@@ -53,6 +55,7 @@ public class Ex7Controller implements Maze.MazeFinishListener {
 		pilot = new DifferentialPilot(DifferentialPilot.WHEEL_SIZE_RCX, 13.9, leftWheel, rightWheel);
 		pilot.setRotateSpeed(ROTATION_SPEED);
 		pilot.setAcceleration(NORMAL_ACC);
+		pilot.setTravelSpeed(20);
 		
 		
 		ultraFront = new UltrasonicSensor(SensorPort.S1);
@@ -60,7 +63,7 @@ public class Ex7Controller implements Maze.MazeFinishListener {
 		ultraRight = new UltrasonicSensor(SensorPort.S3);
 		light = new LightSensor(SensorPort.S4, true);
 		
-		//maze = new Maze(6, 4, MazeBlock.Direction.SOUTH, this);
+		maze = new Maze(6, 4, MazeBlock.Direction.SOUTH, this);
 		forwardMarked = 0;
 		lastForwardMarked = -1;
 		movementOffset = 0;
@@ -68,7 +71,7 @@ public class Ex7Controller implements Maze.MazeFinishListener {
 		rightNoWall = false;
 		alert = new Object();
 		
-		rightDistMonitor = new DistanceMonitor(this, this.ultraRight, 10, Motor.C, Motor.A, NORMAL_SPEED);
+		rightDistMonitor = new DistanceMonitor(this, this.ultraRight, RIGHT_TRAGET_DIST, Motor.C, Motor.A, NORMAL_SPEED);
 		rightDistMonitorThread = new Thread(rightDistMonitor);
 		
 		frontDistMonitor = new FrontMonitor(this, this.ultraFront, 15);
@@ -77,66 +80,66 @@ public class Ex7Controller implements Maze.MazeFinishListener {
 		
 		
 		
-		Maze m = new Maze(6, 4, MazeBlock.Direction.SOUTH, null);
-		m.setWall();
-		m.forward(); m.setWall();
-		m.forward(); m.setWall();
-		m.forward(); m.setWall();
-		m.forward(); m.setWall();
-		m.forward(); m.setWall();
-		m.turn(); m.turn(); m.turn(); m.setWall();
-		m.forward(); m.setWall();
-		m.forward(); m.setWall();
-		m.forward(); m.setWall();
-		m.turn(); m.turn(); m.turn(); m.setWall();
-		m.forward(); m.setWall();
-		m.forward(); m.setWall();
-		m.turn(); m.turn(); m.turn(); m.setWall();
-		m.forward(); m.setWall();
-		m.forward(); m.setWall();
-		m.turn(); m.turn(); m.turn(); m.setWall();
-		m.turn(); m.turn(); m.turn(); m.setWall();
-		m.forward(); m.turn();
-		m.forward(); m.setWall();
-		m.setBlack();
-		m.turn(); m.turn(); m.turn(); m.setWall();
-		m.turn(); m.turn(); m.turn(); m.setWall();
-		m.forward(); m.turn();
-		m.forward(); m.turn();
-		m.forward(); m.setWall();
-		m.forward(); m.turn();
-		m.forward(); m.setWall();
-		m.forward(); m.turn();
-		m.forward(); m.setWall();
-		m.turn(); m.turn(); m.turn(); m.setWall();
-		m.forward(); m.turn();
-		m.forward(); m.setWall();
-		m.forward(); m.turn();
-		m.forward(); m.setWall();
-		m.forward(); m.setWall();
-		m.forward(); m.setWall();
-		m.turn(); m.turn(); m.turn(); m.setWall();
-		m.forward(); m.setWall();
-		m.forward(); m.setWall();
-		m.turn(); m.turn(); m.turn(); m.setWall();
-		m.forward(); m.setWall();
-		m.turn(); m.turn(); m.turn(); m.setWall();
-		m.turn(); m.turn(); m.turn(); m.setWall();
-		m.forward(); m.turn();
-		m.forward(); m.turn();
-		m.forward(); m.setWall();
-		m.turn(); m.turn(); m.turn(); m.setWall();
-		m.turn(); m.turn(); m.turn(); m.setWall();
-		m.forward(); m.turn();
-		m.forward(); m.turn();
-		m.forward(); m.setWall();
-		m.forward(); m.setWall();
-		m.forward(); m.turn();
-		m.forward(); m.setWall();
-		m.forward(); m.setWall();
-		m.turn(); m.turn(); m.turn(); m.setWall();
-		m.turn(); m.turn(); m.turn(); m.setWall();
-		this.maze = m;
+//		Maze m = new Maze(6, 4, MazeBlock.Direction.SOUTH, null);
+//		m.setWall();
+//		m.forward(); m.setWall();
+//		m.forward(); m.setWall();
+//		m.forward(); m.setWall();
+//		m.forward(); m.setWall();
+//		m.forward(); m.setWall();
+//		m.turn(); m.turn(); m.turn(); m.setWall();
+//		m.forward(); m.setWall();
+//		m.forward(); m.setWall();
+//		m.forward(); m.setWall();
+//		m.turn(); m.turn(); m.turn(); m.setWall();
+//		m.forward(); m.setWall();
+//		m.forward(); m.setWall();
+//		m.turn(); m.turn(); m.turn(); m.setWall();
+//		m.forward(); m.setWall();
+//		m.forward(); m.setWall();
+//		m.turn(); m.turn(); m.turn(); m.setWall();
+//		m.turn(); m.turn(); m.turn(); m.setWall();
+//		m.forward(); m.turn();
+//		m.forward(); m.setWall();
+//		m.turn(); m.turn(); m.turn(); m.setWall();
+//		m.turn(); m.turn(); m.turn(); m.setWall();
+//		m.setBlack();
+//		m.forward(); m.turn();
+//		m.forward(); m.turn();
+//		m.forward(); m.setWall();
+//		m.forward(); m.turn();
+//		m.forward(); m.setWall();
+//		m.forward(); m.turn();
+//		m.forward(); m.setWall();
+//		m.turn(); m.turn(); m.turn(); m.setWall();
+//		m.forward(); m.turn();
+//		m.forward(); m.setWall();
+//		m.forward(); m.turn();
+//		m.forward(); m.setWall();
+//		m.forward(); m.setWall();
+//		m.forward(); m.setWall();
+//		m.turn(); m.turn(); m.turn(); m.setWall();
+//		m.forward(); m.setWall();
+//		m.forward(); m.setWall();
+//		m.turn(); m.turn(); m.turn(); m.setWall();
+//		m.forward(); m.setWall();
+//		m.turn(); m.turn(); m.turn(); m.setWall();
+//		m.turn(); m.turn(); m.turn(); m.setWall();
+//		m.forward(); m.turn();
+//		m.forward(); m.turn();
+//		m.forward(); m.setWall();
+//		m.turn(); m.turn(); m.turn(); m.setWall();
+//		m.turn(); m.turn(); m.turn(); m.setWall();
+//		m.forward(); m.turn();
+//		m.forward(); m.turn();
+//		m.forward(); m.setWall();
+//		m.forward(); m.setWall();
+//		m.forward(); m.turn();
+//		m.forward(); m.setWall();
+//		m.forward(); m.setWall();
+//		m.turn(); m.turn(); m.turn(); m.setWall();
+//		m.turn(); m.turn(); m.turn(); m.setWall();
+//		this.maze = m;
 		
 		
 		
@@ -171,8 +174,8 @@ public class Ex7Controller implements Maze.MazeFinishListener {
 
 	public void checkForward(boolean isTurn) {
 		int forwardDone = (int)this.pilot.getMovementIncrement() + this.movementOffset;
-		int blocksDone = forwardDone / BLOCK_SIZE;
-		int offsetInBlock = forwardDone - this.forwardMarked * BLOCK_SIZE; 
+		int blocksDone = forwardDone / (BLOCK_SIZE + 1);
+		int offsetInBlock = forwardDone - this.forwardMarked * (BLOCK_SIZE + 1); 
 		
 		if (blocksDone > this.forwardMarked ||
 			(isTurn && offsetInBlock > 10)) {
@@ -193,7 +196,7 @@ public class Ex7Controller implements Maze.MazeFinishListener {
 	
 	void doArc(double ang) {
 		this.pilot.setTravelSpeed(ARC_SPEED);
-		this.pilot.arc(13 * ang / Math.abs(ang), ang);
+		this.pilot.arc(12 * ang / Math.abs(ang), ang);
 		this.leftWheel.setSpeed(NORMAL_SPEED);
 		this.rightWheel.setSpeed(NORMAL_SPEED);
 	}
@@ -224,7 +227,6 @@ public class Ex7Controller implements Maze.MazeFinishListener {
 				this.checkForward(true);
 				
 				this.doArc(-90 - this.rightDistMonitor.getTrend());
-				//this.pilot.arc(-15, -90 - this.rightDistMonitor.getTrend());
 				this.pilot.forward();
 				
 				this.maze.turn();
@@ -245,6 +247,8 @@ public class Ex7Controller implements Maze.MazeFinishListener {
 				this.checkForward(true);
 				
 				this.pilot.stop();
+				while (!this.rightDistMonitor.isPaused()) {};
+				
 				int rotate = 90 - this.rightDistMonitor.getTrend();
 				this.pilot.rotate(rotate);
 				this.pilot.forward();
@@ -283,76 +287,152 @@ public class Ex7Controller implements Maze.MazeFinishListener {
 		this.rightDistMonitorThread.start();
 		this.frontDistMonitorThread.start();
 		
-		//this.mapMaze();
+		this.pilot.setTravelSpeed(20);
+		
+		this.mapMaze();
 		
 		this.maze.drawMaze();
 		this.frontDistMonitor.pause();
 		this.rightDistMonitor.pause();
 		
-		
 		Button.waitForAnyPress();
-		System.out.println();
-		System.out.println();
-		System.out.println();
-		System.out.println();
-		
-		
 		
 		boolean isFirst = true;
 		Movement moves[] = this.maze.getPathToBlack();
 		
+		this.pilot.setTravelSpeed(20);
+		
+		this.frontDistMonitor.setThreshold(25);
+		this.rightDistMonitor.doNotPause();
+		
 		int travelDist = 0;
-		boolean hasWall = false;
+		int i = 0;
 		for (Movement move : moves) {
 			switch (move.getDirection()) {
 			case LEFT:
 				if (!isFirst) {
-					travelDist -= BLOCK_SIZE / 2;
+					travelDist -= 14; // BLOCK_SIZE / 3;
 				}
 				break;
 			case RIGHT:
 				if (!isFirst) {
-					travelDist -= BLOCK_SIZE / 2;
+					travelDist -= 14; //BLOCK_SIZE / 3;
 				}
 				break;
 			default:
 				break;
 			}
 			
-			if (move.getDirection() != Movement.Direction.FORWARD || hasWall != move.hasWall()) {
-				if (hasWall) {
+			++i;
+			if (move.getDirection() != Movement.Direction.FORWARD) {
+				boolean isLast = i == moves.length;
+				if (move.getDirection() == Movement.Direction.LEFT) {
+					if (move.hasWall()) {
+						this.frontWall = false;
+						this.frontDistMonitor.resume();
+						this.rightDistMonitor.resume();
+						this.pilot.forward();
+						do {
+							synchronized (this.alert) {
+								try {
+									this.alert.wait(100);
+								} catch (InterruptedException e) {
+									e.printStackTrace();
+								}
+							}
+							if (this.frontWall && this.pilot.getMovementIncrement() < travelDist) {
+								this.frontWall = false;
+								this.frontDistMonitor.pause();
+								this.frontDistMonitor.resume();
+							}
+						} while (!this.frontWall);
+						this.pilot.setAcceleration(400);
+						this.pilot.stop();
+						this.pilot.setAcceleration(NORMAL_ACC);
+						this.frontDistMonitor.pause();
+						this.rightDistMonitor.pause();
+						
+						while (!this.rightDistMonitor.isPaused()) {};
+						
+						this.doArc(90);
+						this.pilot.travel(BLOCK_SIZE * 2 / 3);
+						travelDist = 0;
+					} else {
+						if (travelDist < 0) {
+							this.pilot.rotate(90);
+							travelDist = BLOCK_SIZE;
+						} else {
+							this.rightNoWall = false;
+							this.rightDistMonitor.setTargetDist(LEFT_TRAGET_DIST);
+							this.pilot.rotate(-180);
+							this.rightDistMonitor.resume();
+							this.pilot.backward();
+							do {
+								synchronized (this.alert) {
+									try {
+										this.alert.wait(100);
+									} catch (InterruptedException e) {
+										e.printStackTrace();
+									}
+								}
+								if (this.rightNoWall && Math.abs(this.pilot.getMovementIncrement()) < travelDist - 5) {
+									this.rightNoWall = false;
+									this.rightDistMonitor.pause();
+									this.rightDistMonitor.resume();
+								}
+								if (! this.rightNoWall && Math.abs(this.pilot.getMovementIncrement()) > travelDist + 5) {
+									this.rightNoWall = true;
+									this.rightDistMonitor.pause();
+								}
+							} while (! this.rightNoWall);
+							this.rightDistMonitor.pause();
+							this.rightDistMonitor.setTargetDist(RIGHT_TRAGET_DIST);
+							
+							this.pilot.travel(-10);
+							
+							while (!this.rightDistMonitor.isPaused()) {};
+							
+							this.pilot.rotate(90);
+							this.pilot.travel(-BLOCK_SIZE);
+							if (!isLast) {
+								this.pilot.rotate(-180);
+							}
+							travelDist = 0;
+						}
+					}
+					continue;
+				} else {
 					this.rightDistMonitor.resume();
+					this.pilot.travel(travelDist);
 				}
-				this.pilot.travel(travelDist);
+				this.rightDistMonitor.pause();
+				while (!this.rightDistMonitor.isPaused()) {};
 				travelDist = 0;
-				if (hasWall) {
-					this.rightDistMonitor.pause();
-				}
 			}
-			
-			hasWall = move.hasWall();
-			
+
 			switch (move.getDirection()) {
 			case LEFT:
 				if (!isFirst) {
 					this.doArc(90);
-					travelDist += BLOCK_SIZE*2 / 3;
+					this.pilot.travel(BLOCK_SIZE * 2 / 3);
+					travelDist = 0;
 				} else {
 					pilot.rotate(90);
-					travelDist += BLOCK_SIZE;
+					travelDist = BLOCK_SIZE;
 				}
 				break;
 			case RIGHT:
 				if (!isFirst) {
 					this.doArc(-90);
-					travelDist += BLOCK_SIZE*2 / 3;
+					this.pilot.travel(BLOCK_SIZE * 2 / 3);
+					travelDist = 0;
 				} else {
 					pilot.rotate(-90);
 					travelDist += BLOCK_SIZE;
 				}
 				break;
 			case BACKWARD:
-				this.pilot.rotate(180);
+				this.pilot.rotate(-180);
 				travelDist += BLOCK_SIZE;
 				break;
 			case FORWARD:
@@ -364,7 +444,9 @@ public class Ex7Controller implements Maze.MazeFinishListener {
 			isFirst = false;
 		}
 		
+		this.rightDistMonitor.resume();
 		this.pilot.travel(travelDist);
+		
 	}
 	
 	public boolean isBlack() {

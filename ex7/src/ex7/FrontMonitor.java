@@ -26,6 +26,10 @@ public class FrontMonitor implements Runnable {
 		this.stopped = false;
 	}
 	
+	public void setThreshold(int threshold) {
+		this.threshhold = threshold;
+	}
+	
 	public void run() {
 		while (! this.stopped) {
 			while (this.paused) {

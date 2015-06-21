@@ -82,7 +82,7 @@ public class Maze {
 		MazeBlock currBlock = this.getBlock(x, y, false);
 		MazeBlock.Direction currDirection = this.currentDirection;
 		
-		Movement[] moves = new Movement[currBlock.getDistanceToBlack()];
+		Movement[] moves = new Movement[(int)Math.ceil(currBlock.getDistanceToBlack())];
 		for (int i = 0; i < moves.length; ++i) {
 			MazeBlock.Direction travelDirection = currBlock.getDirectionToBlack();
 			MazeBlock nextBlock = currBlock.getNieghbor(travelDirection);
@@ -260,6 +260,12 @@ public class Maze {
 					
 					g.drawLine((int)((i+1) * xWidth), (int)((cols - j) * yWidth), 
 							   (int)(i * xWidth),     (int)((cols - j - 1) * yWidth));
+				}
+				if (block.isStart()) {
+					g.drawRoundRect((int)((i)*xWidth) + 1, (int)((cols-j-1)*xWidth) + 1, (int)xWidth - 2, (int)yWidth - 2, (int)xWidth - 2, (int)yWidth - 2);
+				}
+				if (block == this.getBlock(x,y,false)) {
+					g.drawRect((int)((i)*xWidth) + 4, (int)((cols-j-1)*xWidth) + 4, (int)xWidth - 8, (int)yWidth - 8);
 				}
 			}
 		}

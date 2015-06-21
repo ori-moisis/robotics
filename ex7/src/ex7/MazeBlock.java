@@ -48,7 +48,7 @@ public class MazeBlock {
 	private boolean isBlack;
 	private boolean walls[];
 	private MazeBlock nieghbors[];
-	private int distToBlack;
+	private double distToBlack;
 	private Direction directionToBlack;
 	
 	public int x, y;
@@ -101,7 +101,13 @@ public class MazeBlock {
 		for (Direction direction : Direction.values()) {
 			MazeBlock neigh = this.nieghbors[direction.getOffset()];
 			if (neigh != null) {
-				if (neigh.setDistance(this.distToBlack + 1, direction.opposite())) {
+				double nextDist = this.distToBlack;
+				if (this.directionToBlack == direction.opposite()) {
+					nextDist += 0.99;
+				} else {
+					nextDist += 1;
+				}
+				if (neigh.setDistance(nextDist, direction.opposite())) {
 					blocksToUpdate.add(neigh);
 				}
 			}
@@ -112,7 +118,7 @@ public class MazeBlock {
 		}
 	}
 	
-	public boolean setDistance(int dist, Direction direction) {
+	public boolean setDistance(double dist, Direction direction) {
 		if (dist < this.distToBlack) {
 			this.distToBlack = dist;
 			this.directionToBlack = direction;
@@ -121,7 +127,7 @@ public class MazeBlock {
 		return false;
 	}
 	
-	public int getDistanceToBlack() {
+	public double getDistanceToBlack() {
 		return this.distToBlack;
 	}
 	
