@@ -178,48 +178,6 @@ public class Maze {
         realY = ((realY % this.maze[0].length) + this.maze[0].length) % this.maze[0].length;
 		return this.maze[realX][realY];
 	}
-	
-	public void drawMazeNoNXT() {
-        System.out.println("");
-        System.out.println("");
-
-        MazeBlock.Direction possibles[][][] = new MazeBlock.Direction[][][] {
-                {{MazeBlock.Direction.NORTH, MazeBlock.Direction.WEST}, {MazeBlock.Direction.NORTH}, {MazeBlock.Direction.NORTH, MazeBlock.Direction.EAST}},
-                {{MazeBlock.Direction.WEST}, {}, {MazeBlock.Direction.EAST}},
-                {{MazeBlock.Direction.SOUTH, MazeBlock.Direction.WEST}, {MazeBlock.Direction.SOUTH}, {MazeBlock.Direction.SOUTH, MazeBlock.Direction.EAST}}
-        };
-		
-		for (int i = 0; i < this.rows * 3; ++i) {
-			for (int j = 0; j < this.cols * 3; ++j) {
-				MazeBlock block = this.getBlock(i / 3, j / 3);
-                String c = "   ";
-
-                for (MazeBlock.Direction dir : possibles[i%3][j%3]) {
-                    MazeBlock.Direction actDir = this.needTranspose ? dir.right().right().right() : dir;
-                    if (block.hasWall(actDir)) {
-                        if (i%3 != 1) {
-                            if (j%3 == 1) {
-                                c = "---";
-                            } else {
-                                c = "+++";
-                            }
-                        } else {
-                            c = "|||";
-                        }
-                    }
-                }
-                if (i%3 == 1 && j%3 == 1) {
-                    if (block.isBlack()) {
-                        c = " x ";
-                    } else if (block == this.getBlock(x, y, false)) {
-                        c = " o ";
-                    }
-                }
-                System.out.print(c);
-			}
-            System.out.println();
-		}
-	}
 
 	public void drawMaze() {
 		Graphics g = new Graphics();

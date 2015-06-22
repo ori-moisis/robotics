@@ -10,7 +10,6 @@ import lejos.nxt.SensorPort;
 import lejos.nxt.UltrasonicSensor;
 import lejos.nxt.addon.CompassHTSensor;
 import lejos.robotics.navigation.DifferentialPilot;
-import lejos.util.Delay;
 import lejos.util.Stopwatch;
 
 public class Ex7Controller implements Maze.MazeFinishListener {
@@ -18,11 +17,9 @@ public class Ex7Controller implements Maze.MazeFinishListener {
 	static int NORMAL_SPEED = 300;
 	static int ARC_SPEED = 20;
 	static int ROTATION_SPEED = 50;
-	static float DEG_OFFSET = 162;
 	static int WALL_THRESHOLD = 17;
 	static int BLACK_THRESHOLD = 40;
 	static int BLOCK_SIZE = 30;
-	static int BLOCK_SIZE_IN_TACHO = 320;
 	static int RIGHT_TRAGET_DIST = 10;
 	static int LEFT_TRAGET_DIST = 8;
 	
@@ -144,7 +141,6 @@ public class Ex7Controller implements Maze.MazeFinishListener {
 						this.alert.wait(200);
 					}
 				} catch (InterruptedException e) {
-					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
 			}
@@ -155,7 +151,6 @@ public class Ex7Controller implements Maze.MazeFinishListener {
 				this.rightDistMonitor.pause();
 				
 				this.movementOffset = BLOCK_SIZE / 2;
-				// The case in which we have one more forward to perform
 				this.checkForward(true);
 				
 				this.doArc(-90 - this.rightDistMonitor.getTrend());
@@ -174,8 +169,7 @@ public class Ex7Controller implements Maze.MazeFinishListener {
 			else if (this.frontWall) {
 				// Turn left
 				this.rightDistMonitor.pause();
-				this.frontDistMonitor.pause();				
-				// The case in which we have one more forward to perform
+				this.frontDistMonitor.pause();
 				this.checkForward(true);
 				
 				this.pilot.stop();
@@ -250,12 +244,12 @@ public class Ex7Controller implements Maze.MazeFinishListener {
 			switch (move.getDirection()) {
 			case LEFT:
 				if (!isFirst) {
-					travelDist -= 14; // BLOCK_SIZE / 3;
+					travelDist -= 14;
 				}
 				break;
 			case RIGHT:
 				if (!isFirst) {
-					travelDist -= 14; //BLOCK_SIZE / 3;
+					travelDist -= 14;
 				}
 				break;
 			default:
@@ -340,6 +334,37 @@ public class Ex7Controller implements Maze.MazeFinishListener {
 						}
 					}
 					continue;
+				} else if (move.getDirection() == Movement.Direction.RIGHT && !isFirst) {
+					this.rightNoWall = false;
+					this.rightDistMonitor.resume();
+					this.pilot.forward();
+					do {
+						synchronized (this.alert) {
+							try {
+								this.alert.wait(100);
+							} catch (InterruptedException e) {
+								e.printStackTrace();
+							}
+						}
+						if (this.rightNoWall && Math.abs(this.pilot.getMovementIncrement()) < travelDist - 5) {
+							this.rightNoWall = false;
+							this.rightDistMonitor.pause();
+							this.rightDistMonitor.resume();
+						}
+						if (! this.rightNoWall && Math.abs(this.pilot.getMovementIncrement()) > travelDist + 5) {
+							this.rightNoWall = true;
+							this.rightDistMonitor.pause();
+						}
+					} while (! this.rightNoWall);
+					this.rightDistMonitor.pause();
+					this.pilot.stop();
+					
+					while (!this.rightDistMonitor.isPaused()) {};
+					
+					this.doArc(-90 - this.rightDistMonitor.getTrend());
+					this.pilot.travel(BLOCK_SIZE * 2 / 3);
+					travelDist = 0;
+					continue;
 				} else {
 					this.rightDistMonitor.resume();
 					this.pilot.travel(travelDist);
@@ -388,7 +413,18 @@ public class Ex7Controller implements Maze.MazeFinishListener {
 		
 		System.out.println("Time to reach black=" + (float)this.timer.elapsed() / 1000);
 		
+		this.rightDistMonitor.stop();
+		this.frontDistMonitor.stop();
+		
+		try {
+			this.rightDistMonitorThread.join();
+			this.frontDistMonitorThread.join();
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+		
 		Button.waitForAnyPress();
+		
 	}
 	
 	public boolean isBlack() {
